@@ -1,12 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from distutils.core import setup
+from setuptools import setup
 
-setup(name='hedptk',
+setup(name='hedp',
       version='0.1',
-      description='Python Distribution Utilities',
+      description='Toolkit for HEDP experiments analysis and postprocessing of related radiative-hydrodynamic simulations',
       author='Roman Yurchak',
       author_email='roman.yurchak@polytechnique.edu',
-      packages=['hedptk', 'hedptk.io'],
+      packages=['hedp', 'hedp.io'],
      )
 
