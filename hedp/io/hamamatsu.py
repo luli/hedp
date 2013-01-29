@@ -4,6 +4,7 @@
 
 import re
 import numpy as np
+import codecs
 
 
 class HamamatsuFile(object):
@@ -56,10 +57,10 @@ class HamamatsuFile(object):
         # reading the header 
         while idx < 10: 
             header += f.readline()[:-2] # removes the "\n\r" at the end
-
             idx += 1
         # "magically" compute the data offset
-        self._data_offset = ord(header[:10].decode('utf-8')[2]) + 1856
+        #self._data_offset = ord(header[:10].decode('utf-8')[2]) + 1856
+        self._data_offset = ord(header[2]) + 1856
         # this removes the values between square [] e.g: [Grabber]
         header = re.sub(r'\[[^\]]+\]', '', header)
         base_regexp = r'(?P<key>[A-Z][a-zA-Z_0-9 ]+)='

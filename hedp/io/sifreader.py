@@ -178,6 +178,7 @@ temperature[C]: %(temperature)s\
     
 
     s = f.readline().split()
+    print int(s[0])
     assert int(s[0]) == 65538
 
     #info.imageArea = map(int, s[1:7])
