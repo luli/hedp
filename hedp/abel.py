@@ -5,59 +5,10 @@ import sys
 
 import numpy as np
 from scipy.integrate import simps
-from scipy.linalg import circulant
 from numpy.testing import assert_, assert_array_almost_equal
+from maths.derivative import gradient
 
 
-def gradient(f, x=None, dx=1, axis=-1):
-    """
-    Return the gradient of 1 or 2-dimensional array.
-    The gradient is computed using central differences in the interior
-    and first differences at the boundaries. 
-    Irregular sampling is supported (it isn't supported by np.gradient)
-
-    Parameters
-    ----------
-    f: 1d or 2d numpy array
-       Input array.
-    x: array_like, optional
-       Points where the function f is evaluated. It must be of the same
-       length as f.shape[axis].
-       If None, regular sampling is assumed (see dx)
-    dx: float, optional
-       If `x` is None, spacing given by `dx` is assumed. Default is 1.
-    axis: int, optional
-       The axis along which the difference is taken.
-
-    Returns
-    -------
-    out: array_like
-        Returns the gradient along the given axis. 
-
-    To do:
-      implement smooth noise-robust differentiators for use on experimental data.
-      http://www.holoborodko.com/pavel/numerical-methods/numerical-derivative/smooth-low-noise-differentiators/
-    """
-    if x is None:
-        x = np.arange(f.shape[axis])*dx
-    else:
-        assert x.shape[0] == f.shape[axis]
-    I = np.zeros(f.shape[axis])
-    I[:2] = np.array([0,-1])
-    I[-1] = 1
-    I = circulant(I)
-    I[0,0] = -1
-    I[-1,-1] = 1
-    I[0,-1] = 0
-    I[-1,0] = 0 
-    H = np.zeros((f.shape[axis],1))
-    H[1:-1,0] = x[2:]-x[:-2]
-    H[0] = x[1] - x[0]
-    H[-1] = x[-1] - x[-2]
-    if axis==0:
-        return np.dot(I/H, f)
-    else:
-        return np.dot(I/H, f.T).T
 
 def iabel(fr, r=None):
     """
@@ -156,6 +107,22 @@ def abel(fr, r=None, inverse=False):
     else:
         return result
 
+def abel_analytical_step(fr_z, r, r0, r1):
+    """
+    Parameters
+    ----------
+    fr_z:  1d along Z direction
+        input array to which direct Abel transform will be applied.
+    r:   1d array of radius at which fr is taken.
+    """
+
+    F_1d = np.zeros(r.shape)
+    mask = (r>=r0)*(r<r1)
+    F_1d[mask] = 2*np.sqrt(r1**2 - r[mask]**2)
+    mask = r<r0
+    F_1d[mask] = 2*np.sqrt(r1**2 - r[mask]**2) - 2*np.sqrt(r0**2 - r[mask]**2)
+    fr_z = fr_z.reshape((-1,1))
+    return F_1d*fr_z
 
 class TestAbel:
     """
@@ -175,6 +142,20 @@ class TestAbel:
         n = 64
         x = np.zeros((n,n))
         assert (abel(x, inverse=False)==0).all()
+
+    def test_step(self):
+        n = 512
+        fr = np.zeros((n/16,n))
+        r = 2e-3*np.arange(n)
+        r0, r1 = 0.2, 0.5
+        fr[:,(r>r0)*(r<r1)] = 3
+        Fn = abel(fr, r)
+        Fn_a = abel_analytical_step(3*np.ones(fr.shape[0]),r, r0,r1)
+        err =  np.abs(Fn - Fn_a)
+
+
+
+
 
     def test_inversion(self):
         n = 256
@@ -213,7 +194,8 @@ class TestAbel:
 
 if __name__ == "__main__":
     # just an example to illustrate the limitations of this algorthm
-    import pylab as plt
+    import matplotlib.pyplot as plt
+    sys.exit()
 
     n = 300
     r = 5e-3*np.arange(n) 

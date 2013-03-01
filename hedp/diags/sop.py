@@ -5,48 +5,37 @@ from scipy.integrate import cumtrapz
 
 from scipy.interpolate import interp1d
 from scipy.ndimage import map_coordinates
+from scipy import constants
+from scipy.constants import physical_constants
 
 # everything is in SI units
 
-C_CST = 3.0e8
-H_CST = 6.626068e-34
-KB_CST = 1.3806503e-23
-NA_CST = 6.02214129e23
-def SOP_diag(d, lmbda):
-    Te = d['tele']
-
-    plank  =  2*H_CST*C_CST**2/\
-            ( lmbda**5*( np.exp(H_CST*C_CST / (lmbda*KB_CST*Te)) - 1.  ))
-
-    # this is the emission intensity
-    return plank
-
-def kramer_unsoldt_opacity(dens, Z, A, Zbar, Te, lmbda):
+def planck(tele, nu=None, lmbda=None):
     """
-    Computes the  Kramer-Unsoldt opacity [Zel’dovich & Raizer 1967 p 27]
-    cf. Thèse de Tommaso
-    
+    Plot the Planck distribution
+
     Parameters:
     -----------
-     dens: [ndarray] density in (g.cm⁻³)
-     Z: [ndarray] atomic number 
-     A: [ndarray] atomic mass
-     Zbar: [ndarray] ionization
-     Te: [ndarray] electron temperature (eV)
-     lmdba: [ndarray] wavelength (nm)
+     - tele [ndarray] temperature [eV]
+     - lmbda [ndarray] photon wavelenght [nm] (optional)
+     - nu [ndarray] photon energy [eV] (optional)
 
     Returns:
     --------
-     out: [ndarray] of the same shape as input containing the opacity [cm⁻¹]
+     I0 [ndarray] planck distribution
+
     """
-                                          # check sign here
-    Ibar = 10.4*Z**(4./3) * (Zbar/Z)**2 / (1 - Zbar/Z)**(2./3)
-    Ibar = np.fmax(Ibar, 6.0)
-    y = 1240./(lmbda * Te)
-    y1 = Ibar / Te
-    Ni = dens * NA_CST / A
-    #print Ibar, y, y1, Ni
-    return np.fmax(7.13e-16* Ni * (Zbar + 1)**2 * np.exp(y - y1) / (Te**2*y**3), 1e-16)
+    if nu is None and lmbda is None:
+        raise ValueError('You should specify either nu or lmbda!')
+    elif nu is not None and lmbda is not None:
+        raise ValueError('Parameters nu and lmbda cannot be specified at the same time!')
+    elif nu is None:
+        nu = physical_constants['inverse meter-electron volt relationship'][0]*1.0e9/lmbda
+
+    Bnu  =  2*(nu*constants.e)**3/((constants.h*constants.c)**2 *
+                    ( np.exp(nu / tele) - 1.  ))
+    return Bnu
+
 
 def compute_emiss(I0, op, dx=1, axis=0, _sum=False):
     if axis==0:
