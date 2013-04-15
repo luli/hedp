@@ -5,7 +5,7 @@ from scipy.integrate import cumtrapz
 
 from scipy.interpolate import interp1d
 from scipy.ndimage import map_coordinates
-from scipy import constants
+from scipy import constants as cst
 from scipy.constants import physical_constants
 
 # everything is in SI units
@@ -22,7 +22,7 @@ def planck(tele, nu=None, lmbda=None):
 
     Returns:
     --------
-     I0 [ndarray] planck distribution
+     Blmbda [ndarray] planck distribution
 
     """
     if nu is None and lmbda is None:
@@ -30,11 +30,37 @@ def planck(tele, nu=None, lmbda=None):
     elif nu is not None and lmbda is not None:
         raise ValueError('Parameters nu and lmbda cannot be specified at the same time!')
     elif nu is None:
-        nu = physical_constants['inverse meter-electron volt relationship'][0]*1.0e9/lmbda
+        #nu = physical_constants['inverse meter-electron volt relationship'][0]*1.0e9/lmbda
+        lmbda = lmbda/1.0e9
+        tele = tele*physical_constants['electron volt-kelvin relationship'][0]
+        Bnu = 2.0*cst.h*cst.c**2/(lmbda**5*(np.exp(cst.h*cst.c / (cst.k*lmbda*tele) - 1)))
+        return Bnu
 
-    Bnu  =  2*(nu*constants.e)**3/((constants.h*constants.c)**2 *
-                    ( np.exp(nu / tele) - 1.  ))
-    return Bnu
+    #nu_Hz = nu*physical_constants['electron volt-hertz relationship'][0]
+    #print lmbda, nu, nu_Hz
+
+    #Bnu  =  2*cst.h*nu_Hz**3/(cst.c**2 *
+    #                ( np.exp(nu / tele) - 1.  ))
+
+def iplanck(Blmbda, lmbda):
+    """
+    Plot the Planck distribution
+
+    Parameters:
+    -----------
+     - Blmbda [ndarray] Spectral Radiance [W.m⁻².sr⁻¹.nm⁻¹]
+     - lmbda [float] photon wavelenght [nm]
+
+    Returns:
+    --------
+     Te [ndarray]: black body temperature
+
+    """
+    Blmbda = Blmbda*1.0e9 #to W.m⁻².sr⁻¹.m⁻¹
+    lmbda = lmbda/1.0e9
+    a = cst.c*cst.h/(lmbda*cst.k*physical_constants['electron volt-kelvin relationship'][0])
+    b = 2*cst.h*cst.c**2/lmbda**5
+    return a/np.log(1.0 + b/Blmbda), a, b
 
 
 def compute_emiss(I0, op, dx=1, axis=0, _sum=False):
@@ -80,4 +106,83 @@ def polar2cartesian(r, t, grid, x, y, order=3):
 
     return map_coordinates(grid, np.array([new_ir, new_it]),
                             order=order).reshape(new_r.shape)
+
+def get_sop_slit_width(path, super_gaussian_factor=6):
+    """
+    Compute the slit width from the reference image by
+    fitting the profile with a supergaussian
+
+    Parameters:
+    -----------
+      - path [str]: path to .img file
+
+    Returns:
+    --------
+      - slit width [float]: in px
+
+    """
+    from hedp.io import HamamatsuFile
+    from scipy.optimize import curve_fit
+    hm = HamamatsuFile(path)
+    img = hm.data
+    #print img.data
+
+    def slit_width(r, r0, w, h, M):
+        return h*np.exp(-2*((r-r0)/w)**super_gaussian_factor) + M
+    signal_proj = img.sum(axis=-1)[100:-100]
+    x = np.arange(len(signal_proj))
+
+    popt, pcov = curve_fit(slit_width, x, signal_proj, (400, 20, 1e5, 0))
+    return 2*popt[1]
+
+
+def sop_calibration_berenice(lmbda, F, magnification,  transmission, detectorsize,
+                                    slitwidth, sweepspeed):
+    """
+    Compute the calibration for a streaked self emission system.
+
+    This function calculates the number of electrons ejected by the
+    photocathode in a SOP configuration.
+
+    Parameters:
+    -----------
+      - lmbda [ndarray]: wavelenght (nm) array
+      - F  [float]:  F number of the first lens
+      - magnification [float]:    Magnification of the optical system
+      - transmission  [ndarray]:    Total transmission of the optical system, including the
+                      filter (same shape as the nu) 
+      - detectorsize  [float] Size of a pixel in spatial direction in μm
+      - slitwidth  [float]   Size of the slit in px
+      - sweepspeed        Sweep speed of the streak [100ns, 50ns, etc]in pixel/ns
+
+    Returns:
+    --------
+      - Flux_norm [float]: photon flux (W.m⁻².sr⁻¹.nm⁻¹.counts⁻¹)
+
+    """
+    solid_angle = np.pi/(4*F**2) # solid angle of the first optics in sr
+    # Données Tommaso [counts/Joule] Streak S20 (Il faut le verifier)
+    K_counts2J = 6.6434e18
+    # Surface on the target for 1px (m^2)
+    S_px = (detectorsize*1e-6)**2
+    tr_itp = interp1d(lmbda[::-1], transmission[::-1])
+    # Transmission at 420 nm
+    Tr_420 = tr_itp(420)
+    # Time spend on each pxl:
+    # Streak slit 100um = 8px pour calibre :
+    # This remains approximately true for this polar experiment
+    #slitwidth = 10 # px
+    t_px = slitwidth * sweepspeed/1024.
+    # Approximate width of the filter system ( ~10 nm):
+    dlmbda = np.abs(np.trapz(transmission[::-1], lmbda[::-1])/Tr_420) # nm 
+
+    #print S_px, solid_angle, t_px, Tr_420 #K_counts2J, dlmbda
+
+    Flux_coeff = 1./(S_px * solid_angle  * t_px * Tr_420 * K_counts2J * dlmbda)
+    return Flux_coeff
+
+
+
+
+
 

@@ -1,21 +1,30 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# Roman Yurchak, Laboratoire LULI, 16.11.2012
+# hedp module
+# Roman Yurchak, Laboratoire LULI, 11.2012
 
 import re
 import numpy as np
-import codecs
+#import codecs
+
 
 
 class HamamatsuFile(object):
-    def __init__(self, filename):
+    def __init__(self, filename, offset='auto'):
         """ A parser to read Hamamatsu streak camera's .img output files.
         This code was partly adapted from an ImageJ plugin.
 
         Parameters
         ----------
          - filename [str]: filepath to .img file to open
-
+         - offset [str or int]: the method to use when computing the
+               offset. Can be :
+                   * 'auto' : try to read the offset in the header.
+                        Should work for most cases, but may occasionnaly fail.
+                   * 'from_end': get offset as data_size - image_size
+                   * 'from_end_4k': same as 'from_end' but additionnaly
+                        substract 4092 (seems to be streak dependant..)
+                   * int : manual value for the offset
         Returns
         -------
          an HamammatsuReader object with following attributes:
@@ -44,6 +53,11 @@ class HamamatsuFile(object):
         >> plt.imshow(img.data)
         """
         self.filename = filename
+        if (type(offset) is str and\
+                offset not in ['auto', 'from_end', 'from_end_4k']) and\
+                (type(offset) is not int):
+            raise ValueError("Wrong input value for 'offset' input parameter!")
+        self._offset_input = offset
         self._read_header()
         self._read_data()
 
@@ -55,31 +69,57 @@ class HamamatsuFile(object):
         idx = 0
         header = ''
         # reading the header 
-        while idx < 10: 
+        while idx < 13: 
             header += f.readline()[:-2] # removes the "\n\r" at the end
             idx += 1
         # "magically" compute the data offset
-        #self._data_offset = ord(header[:10].decode('utf-8')[2]) + 1856
-        self._data_offset = ord(header[2]) + 1856
-        # this removes the values between square [] e.g: [Grabber]
-        header = re.sub(r'\[[^\]]+\]', '', header)
-        base_regexp = r'(?P<key>[A-Z][a-zA-Z_0-9 ]+)='
-        fh = re.findall(base_regexp + r'(?P<val>[^,"]+),', header) # e.g: NrTrigger=1
-        fh += re.findall(base_regexp + r'"(?P<val>[^"]*)"', header) # e.g: pntOrigCh="0,0"
-        self.header  = dict(fh)
-        self.header['DateTime'] = self.header['Date'] +' ' + self.header['Time']
-        del self.header['Date'], self.header['Time']
+        self._offset_auto = ord(header[2]) + 1856 #+ 4096
 
-        self.shape = np.array(self.header['GRBScan'].split(',')[-2:]).astype(np.int)
+        header =  header[:self._offset_auto]
+        header = re.sub(r'(?P<section>\[[^\]]+\])', '\n\g<section>', header)
+        header = header.splitlines()[1:]
+        self.header = dict([self._header_sect2dict(line) for line in header])
+        self.shape = np.array(self.header['Acquisition']['areGRBScan'].split(',')[-2:]).astype(np.int)
         f.close()
+
+        self._offset_whence = 0
+        if type(self._offset_input) is str:
+            offset_list = {'auto': self._offset_auto,
+                           'from_end': -np.prod(self.shape)*2,
+                           'from_end_4k': - np.prod(self.shape)*2 - 4092}
+
+            self._offset_data = offset_list[self._offset_input]
+            if self._offset_input.startswith('from_end'):
+                # set the flag to seek from the end of the file.
+                self._offset_whence = 2
+        elif type(self._offset_input) is int:
+            self._offset_data = self._offset_input
+
+
         return self.header
+
+    @staticmethod
+    def _header_sect2dict(line):
+        sect_name = re.match(r'\[(?P<section>[^\]]+)\]', line).group('section')
+        metadata = re.split(r'(?<=\d|"|\]|\w),(?=[a-zA-Z])', line)[1:]
+        for idx, val in enumerate(metadata):
+            metadata[idx] = val.split('=')
+            try:
+                mval =  re.sub('"', '', metadata[idx][1])
+                if mval.isdigit():
+                    mval = int(mval)
+                metadata[idx][1] = mval
+            except:
+                return ('Error', 'here')
+
+        return (sect_name, dict(metadata))
 
     def _read_data(self):
         """Reading the binary data
         Internal use only.
         """
         with open(self.filename, 'rb') as f:
-            f.seek(self._data_offset)
+            f.seek(self._offset_data, self._offset_whence)
             self.data = np.fromfile(f, dtype=np.int16,
                     count=np.prod(self.shape)).reshape(self.shape[::-1])
 
@@ -87,14 +127,14 @@ class HamamatsuFile(object):
         """Default representation of the class.
         This method is used when calling pring HamammatsuReader
         """
-        stdout = ''
-        for key in ['DeviceName', 'CameraName', 'DateTime',
-                'Time Range', 'Gain','Temperature',
-                'Shutter', 'Mode', 'Binning']:
-            if key in self.header:
-                stdout += '%s: %s\n' % (key, self.header[key])
-        stdout += 'Shape: %s' % str(tuple(self.shape))
-        return stdout
+        out = ""
+        for section_name, section_data in sorted(self.header.iteritems()):
+            out += '\n'.join(['='*80, " "*20 + section_name, '='*80]) + '\n'
+            for key, val in sorted(section_data.iteritems()):
+                out += '   - {0} : {1}\n'.format(key, val)
+            out += '\n'
+        return out
+
 
 def test_hamamatsu():
     """Some basic unitest"""
@@ -117,8 +157,9 @@ if __name__ == '__main__':
                                help='path to the .img file')
 
     args = parser.parse_args()
-    sp = HamamatsuFile(args.filepath)
+    sp = HamamatsuFile(args.filepath, 'from_end')
     cs = plt.imshow(sp.data, vmax=np.percentile(sp.data, 99.9))
+
     plt.colorbar(cs)
     plt.show()
 

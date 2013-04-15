@@ -1,5 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+# hedp module
+# Roman Yurchak, Laboratoire LULI, 11.2012
+
 import time
 import sys
 
@@ -10,14 +13,14 @@ from maths.derivative import gradient
 
 
 
-def iabel(fr, r=None):
+def iabel(r, fr):
     """
     Returns inverse Abel transform. See `abel` for input parameters.
 
     """
     return abel(fr, r, inverse=True)
 
-def abel(fr, r=None, inverse=False):
+def abel(r, fr, inverse=False):
     """
     Returns the direct or inverse Abel transform of a function
     sampled at discrete points.
@@ -43,9 +46,8 @@ def abel(fr, r=None, inverse=False):
         input array to which direct/inversed Abel transform will be applied.
         For a 2d array, the first dimension is assumed to be the z axis and
         the second the r axis.
-    r:   1d array of the same length as fr.shape[-1] [optional]
-        array of radius at which fr is taken. If None the sampling is
-        assumed to be range(fr.shape[-1]).
+    r:   1d array of the same length as fr.shape[-1]
+        array of radius at which fr is taken.
     inverse: boolean
         If True inverse Abel transform is applied.
 
@@ -58,8 +60,6 @@ def abel(fr, r=None, inverse=False):
     assert type(fr).__name__ == 'ndarray'
     if fr.ndim == 1:
         fr = fr[np.newaxis, :]
-    if r is None:
-        r = np.arange(fr.shape[1])
     if inverse:
          fr = gradient(fr, r, axis=-1)
     result = np.empty(fr.shape)
@@ -107,13 +107,13 @@ def abel(fr, r=None, inverse=False):
     else:
         return result
 
-def abel_analytical_step(fr_z, r, r0, r1):
+def abel_analytical_step(r, fr_z, r0, r1):
     """
     Parameters
     ----------
+    r:   1d array of radius at which fr is taken.
     fr_z:  1d along Z direction
         input array to which direct Abel transform will be applied.
-    r:   1d array of radius at which fr is taken.
     """
 
     F_1d = np.zeros(r.shape)

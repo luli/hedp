@@ -1,5 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+# hedp module
+# Roman Yurchak, Laboratoire LULI, 11.2012
+
 import os, os.path
 
 import json
@@ -26,6 +29,7 @@ class Storage(dict):
     """
     A Storage object is like a dictionary except `obj.foo` can be used
     in addition to `obj['foo']`, and setting obj.foo = None deletes item foo.
+    Copied from web2py framework.
 
         >>> o = Storage(a=1)
         >>> print o.a

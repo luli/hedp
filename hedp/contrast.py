@@ -1,5 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+# hedp module
+# Roman Yurchak, Laboratoire LULI, 11.2012
+
 import numpy as np
 
 def histeq(im,nbr_bins=256):
