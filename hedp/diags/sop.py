@@ -8,61 +8,6 @@ from scipy.ndimage import map_coordinates
 from scipy import constants as cst
 from scipy.constants import physical_constants
 
-# everything is in SI units
-
-def planck(tele, nu=None, lmbda=None):
-    """
-    Plot the Planck distribution
-
-    Parameters:
-    -----------
-     - tele [ndarray] temperature [eV]
-     - lmbda [ndarray] photon wavelenght [nm] (optional)
-     - nu [ndarray] photon energy [eV] (optional)
-
-    Returns:
-    --------
-     Blmbda [ndarray] planck distribution
-
-    """
-    if nu is None and lmbda is None:
-        raise ValueError('You should specify either nu or lmbda!')
-    elif nu is not None and lmbda is not None:
-        raise ValueError('Parameters nu and lmbda cannot be specified at the same time!')
-    elif nu is None:
-        #nu = physical_constants['inverse meter-electron volt relationship'][0]*1.0e9/lmbda
-        lmbda = lmbda/1.0e9
-        tele = tele*physical_constants['electron volt-kelvin relationship'][0]
-        Bnu = 2.0*cst.h*cst.c**2/(lmbda**5*(np.exp(cst.h*cst.c / (cst.k*lmbda*tele) - 1)))
-        return Bnu
-
-    #nu_Hz = nu*physical_constants['electron volt-hertz relationship'][0]
-    #print lmbda, nu, nu_Hz
-
-    #Bnu  =  2*cst.h*nu_Hz**3/(cst.c**2 *
-    #                ( np.exp(nu / tele) - 1.  ))
-
-def iplanck(Blmbda, lmbda):
-    """
-    Plot the Planck distribution
-
-    Parameters:
-    -----------
-     - Blmbda [ndarray] Spectral Radiance [W.m⁻².sr⁻¹.nm⁻¹]
-     - lmbda [float] photon wavelenght [nm]
-
-    Returns:
-    --------
-     Te [ndarray]: black body temperature
-
-    """
-    Blmbda = Blmbda*1.0e9 #to W.m⁻².sr⁻¹.m⁻¹
-    lmbda = lmbda/1.0e9
-    a = cst.c*cst.h/(lmbda*cst.k*physical_constants['electron volt-kelvin relationship'][0])
-    b = 2*cst.h*cst.c**2/lmbda**5
-    return a/np.log(1.0 + b/Blmbda), a, b
-
-
 def compute_emiss(I0, op, dx=1, axis=0, _sum=False):
     if axis==0:
         op = op[::-1]
