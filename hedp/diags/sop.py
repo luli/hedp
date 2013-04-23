@@ -7,6 +7,7 @@ from scipy.interpolate import interp1d
 from scipy.ndimage import map_coordinates
 from scipy import constants as cst
 from scipy.constants import physical_constants
+from streak import streak_sens
 
 def compute_emiss(I0, op, dx=1, axis=0, _sum=False):
     if axis==0:
@@ -81,7 +82,7 @@ def get_sop_slit_width(path, super_gaussian_factor=6):
     return 2*popt[1]
 
 
-def sop_calibration_berenice(lmbda, F, magnification,  transmission, detectorsize,
+def sop_calibration(lmbda, F, magnification,  transmission, detectorsize,
                                     slitwidth, sweepspeed):
     """
     Compute the calibration for a streaked self emission system.
@@ -106,8 +107,12 @@ def sop_calibration_berenice(lmbda, F, magnification,  transmission, detectorsiz
 
     """
     solid_angle = np.pi/(4*F**2) # solid angle of the first optics in sr
-    # Données Tommaso [counts/Joule] Streak S20 (Il faut le verifier)
-    K_counts2J = 6.6434e18
+    # Données Tommaso [Joule/count] Streak S20
+    K_Jcounts = 6.6434e-18  # 
+    # Normalize with streak sensitivity for the given wavelenght
+    mstreak_sens = lambda lmbda: streak_sens(lmbda, 'hamamatsu', 'S20_2')[0]
+    K_Jcounts = K_Jcounts*mstreak_sens(430.)/mstreak_sens(532.)
+
     # Surface on the target for 1px (m^2)
     S_px = (detectorsize*1e-6)**2
     tr_itp = interp1d(lmbda[::-1], transmission[::-1])
@@ -116,14 +121,14 @@ def sop_calibration_berenice(lmbda, F, magnification,  transmission, detectorsiz
     # Time spend on each pxl:
     # Streak slit 100um = 8px pour calibre :
     # This remains approximately true for this polar experiment
-    #slitwidth = 10 # px
+    slitwidth = 10 # px
     t_px = slitwidth * sweepspeed/1024.
     # Approximate width of the filter system ( ~10 nm):
     dlmbda = np.abs(np.trapz(transmission[::-1], lmbda[::-1])/Tr_420) # nm 
 
     #print S_px, solid_angle, t_px, Tr_420 #K_counts2J, dlmbda
 
-    Flux_coeff = 1./(S_px * solid_angle  * t_px * Tr_420 * K_counts2J * dlmbda)
+    Flux_coeff = K_Jcounts/(S_px * solid_angle  * t_px * Tr_420 * dlmbda)
     return Flux_coeff
 
 
