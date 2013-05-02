@@ -73,9 +73,9 @@ class HamamatsuFile(object):
             header += f.readline()[:-2] # removes the "\n\r" at the end
             idx += 1
         # "magically" compute the data offset
-        self._offset_auto = ord(header[2]) + 1856 #+ 4096
+        self._offset_auto = ord(header[2]) + 1856
 
-        header =  header[:self._offset_auto]
+        header =  header[:self._offset_auto+300] # add an extra random header for offset
         header = re.sub(r'(?P<section>\[[^\]]+\])', '\n\g<section>', header)
         header = header.splitlines()[1:]
         self.header = dict([self._header_sect2dict(line) for line in header])
@@ -100,19 +100,18 @@ class HamamatsuFile(object):
 
     @staticmethod
     def _header_sect2dict(line):
-        sect_name = re.match(r'\[(?P<section>[^\]]+)\]', line).group('section')
-        metadata = re.split(r'(?<=\d|"|\]|\w),(?=[a-zA-Z])', line)[1:]
-        for idx, val in enumerate(metadata):
-            metadata[idx] = val.split('=')
-            try:
+        try:
+            sect_name = re.match(r'\[(?P<section>[^\]]+)\]', line).group('section')
+            metadata = re.split(r'(?<=\d|"|\]|\w),(?=[a-zA-Z])', line)[1:]
+            for idx, val in enumerate(metadata):
+                metadata[idx] = val.split('=')
                 mval =  re.sub('"', '', metadata[idx][1])
                 if mval.isdigit():
                     mval = int(mval)
                 metadata[idx][1] = mval
-            except:
-                return ('Error', 'here')
-
-        return (sect_name, dict(metadata))
+            return (sect_name, dict(metadata))
+        except:
+            return ('Error', 'here')
 
     def _read_data(self):
         """Reading the binary data
@@ -129,6 +128,8 @@ class HamamatsuFile(object):
         """
         out = ""
         for section_name, section_data in sorted(self.header.iteritems()):
+            if section_name== 'Error':
+                continue
             out += '\n'.join(['='*80, " "*20 + section_name, '='*80]) + '\n'
             for key, val in sorted(section_data.iteritems()):
                 out += '   - {0} : {1}\n'.format(key, val)
@@ -157,7 +158,17 @@ if __name__ == '__main__':
                                help='path to the .img file')
 
     args = parser.parse_args()
-    sp = HamamatsuFile(args.filepath, 'from_end')
+    #  some logic to determine offset mode depending on the folder
+    offset = 'from_end'
+    if sum([key in args.filepath for key in ['Rear_SOP_1D']]) and\
+        not sum([key in args.filepath for key in ['ref.img', 'alignemts']]):
+        offset =  'from_end_4k'
+    elif sum([key in args.filepath for key in ['Transverse_SOP_1D']]):
+        offset =  'from_end'
+    print offset
+
+
+    sp = HamamatsuFile(args.filepath, offset)
     cs = plt.imshow(sp.data, vmax=np.percentile(sp.data, 99.9))
 
     plt.colorbar(cs)

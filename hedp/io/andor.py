@@ -103,5 +103,6 @@ if __name__ == "__main__":
     import scipy.ndimage
 
     sif = SifFile(sys.argv[1])
-    plt.imshow(scipy.ndimage.filters.median_filter(sif.data, 3))
+    cs = plt.imshow(scipy.ndimage.filters.median_filter(sif.data, 3), cmap=plt.cm.Paired)
+    plt.colorbar(cs)
     plt.show()    
