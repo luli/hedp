@@ -5,7 +5,7 @@
 
 from . import io
 import diags
-from matdb import matdb, MATDB_PATH
+from matdb import matdb, MATDB_PATH, Storage
 
 import cst
 import pp

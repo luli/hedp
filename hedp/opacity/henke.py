@@ -10,6 +10,7 @@ import urllib
 from scipy.interpolate import interp1d
 
 import hedp
+from time import time
 #from pyquery import PyQuery as pq
 #try:
 #    from .. import matdb
@@ -40,8 +41,12 @@ def cold_opacity(element, dens, nu):
     elif dens.ndim <= 1:
         return op*dens.reshape(-1,1)
     elif dens.ndim == 2:
-        op = np.array([dens*op_at_nu for op_at_nu in np.nditer(op)])
-        return np.rollaxis(op, 0, 3) # setting this to be the right shape
+        return dens[:,:,np.newaxis]*op[np.newaxis, np.newaxis, :]
+
+        ## this works but is soo slow
+        #op = np.array([dens*op_at_nu for op_at_nu in np.nditer(op)])
+        #print np.rollaxis(op, 0, 3).shape
+        #return np.rollaxis(op, 0, 3) # setting this to be the right shape
 
 
 def download_full(element):
