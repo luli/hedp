@@ -8,7 +8,7 @@ import sys
 
 import numpy as np
 from scipy.integrate import simps
-from hedp.maths.derivative import gradient
+from hedp.math.derivative import gradient
 
 
 
@@ -140,7 +140,7 @@ def sym_abel_step_1d(r, r0, r1):
 if __name__ == "__main__":
     # just an example to illustrate the limitations of this algorthm
     import matplotlib.pyplot as plt
-    sys.exit()
+    #sys.exit()
 
     n = 300
     r = 5e-3*np.arange(n) 

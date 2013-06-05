@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import hedp
 from hedp.opacity.henke import cold_opacity
+from scipy.odr import odrpack as odr
 import numpy as np
 
 def photon_deposition_depth(nu, op, I0, depth):
@@ -117,9 +118,106 @@ def ff_profile(nu, tele):
     """
     return np.exp(-nu/tele)/(1+tele)
 
+def compute_spectra(pars, nu, bl_el='Cl'):
+    a, b, dkalpha, tele = pars
+    spectra = a*Kalpha_profile(bl_el, nu, dkalpha) + b*ff_profile(nu, tele)
+    spectra /= np.trapz(spectra, nu)
+    return spectra
+
+class StepsIP(object):
+    def __init__(self, mat, thick, transm, nu=np.linspace(10,20e3,1000),
+            filters={}):
+        """
+        Compute the Xray spectra from steps transmissions
+        """
+        assert len(mat) == len(thick)
+        assert len(mat) == len(transm)
+        self.mat = mat
+        self.thick = thick
+        self.exp_tr = transm
+        self.nu = nu
+        self.filters = filters
+        self.sp_sens = self._get_opacity()
+        self.estimate_spectra()
+
+    def _get_opacity(self):
+        sp_tr = np.empty((len(self.mat), len(self.nu)))
+        sp_tr_filters = np.ones(self.nu.shape)
+        for el, thick in self.filters.iteritems():
+            sp_tr_filters *= np.exp(-cold_opacity(el, nu=self.nu)*thick)
+        ip_sens = ip_sensitivity(self.nu)
+        for k, el in enumerate(self.mat):
+            sp_tr[k] = np.exp(-cold_opacity(el, nu=self.nu)*self.thick[k])\
+                    * sp_tr_filters * ip_sens
+        return sp_tr
+
+    def estimate_spectra(self):
+        def ofunc(pars, x, sp_sens, nu, el):
+            a, b, dkalpha, tele = pars
+            spectra = a*Kalpha_profile(el, nu, dkalpha) + b*ff_profile(nu, tele)
+            spectra /= np.trapz(spectra, nu)
+
+            spectra = np.tile(spectra, (sp_sens.shape[0], 1))
+            comp_tr = np.trapz(sp_sens*spectra, nu, axis=-1)
+            return comp_tr
+
+
+        def ofunc2(pars, thick, nu, el):
+            spectra= compute_spectra(pars, nu)
+
+            sp_tr_filters = np.ones(nu.shape)
+            for filt_el, filt_thick in self.filters.iteritems():
+                sp_tr_filters *= np.exp(-cold_opacity(filt_el, nu=nu)*filt_thick)
+            ip_sens = ip_sensitivity(nu)
+            comp_tr = []
+            for this_thick in thick:
+                sp_sens = np.exp(-cold_opacity(el, nu=nu)*this_thick)\
+                        * sp_tr_filters * ip_sens * spectra
+                comp_tr.append(np.trapz(sp_sens, nu, axis=0))
+
+            return np.array(comp_tr).reshape((1,-1))
+            #return ((comp_tr - exp_tr)**2).sum()
+        beta0=[1,1,100,1000]
+        my_data = odr.RealData(self.thick, self.exp_tr, sy=0.05*np.ones(self.exp_tr.shape))
+        my_model = odr.Model(ofunc2,
+                extra_args=(self.nu, 'polystyrene')
+                )
+        my_odr = odr.ODR(my_data,my_model, beta0=beta0)
+        my_odr.set_job(fit_type=2)
+        my_odr.set_iprint(final=2,iter=1, iter_step=1)
+        fit = my_odr.run()
+        self.beta = fit.beta#[::-1]
+        self.sdbeta = fit.sd_beta#[::-1]
+
+        print ofunc2(self.beta, self.thick, self.nu, 'polystyrene')
+        print self.exp_tr
+
+        print '\n'
+        print beta0
+        print self.beta
+
+        #print ofunc([1,1,100,1000], self.sp_sens, self.exp_tr, self.nu, 'Cl')
+
+
+
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
+    ax = [plt.subplot(2,1,idx+1) for idx in range(2)]
+    steps_psl = np.array([0.02, 0.04, 0.06, 0.08, 0.12, 0.27,  0.27, 0.27, 0.27, 0.30])
+    steps_tr = 1 - steps_psl/steps_psl.max()
+    steps_tr = steps_tr[:5]
+    steps_mat = ['mylar']*5
+    steps_thick = np.array([25,50,100, 200, 400])*1e-4
+    steps = StepsIP(steps_mat, steps_thick, steps_tr,
+            filters={'PVDC': 37.5e-4, 'mylar': 100e-4})
+    for k in range(len(steps.mat)):
+        ax[0].plot(steps.nu, steps.sp_sens[k], label='{0} um'.format(steps.thick[k]*1e4))
+    ax[0].legend()
+    ax[0].set_ylim(0, 0.3)
+    beta0 = [1,1,100,1000] 
+    ax[1].plot(steps.nu, compute_spectra(steps.beta, steps.nu))
+    plt.savefig('/tmp/test.png', bbox_inches='tight')
 
 
 

@@ -147,7 +147,7 @@ def se_calibration(counts, lmbda, F,  transmission, detectorsize,
             counts_max =  cal_function(tele=tele_max, **args)[0]
         tele_i = np.linspace(0, tele_max, 1000)
         counts_i = cal_function(tele=tele_i, **args)
-        calibration_fit = interp1d(counts_i, tele_i)
+        calibration_fit = interp1d(counts_i, tele_i, bounds_error=False, fill_value=0)
         return calibration_fit(counts)
 
 def _sop_calibration(lmbda, F,  transmission, detectorsize,

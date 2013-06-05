@@ -4,7 +4,7 @@ import time
 
 import numpy as np
 from hedp.pp.abel import abel, abel_analytical_step, iabel
-from hedp.maths.derivative import gradient
+from hedp.math.derivative import gradient
 from numpy.testing import assert_, assert_array_almost_equal
 
 

@@ -11,6 +11,7 @@ from scipy.interpolate import interp1d
 
 import hedp
 from time import time
+import numbers
 #from pyquery import PyQuery as pq
 #try:
 #    from .. import matdb
@@ -18,7 +19,7 @@ from time import time
 #    sys.path.append('../')
 #    import matdb
 
-def cold_opacity(element, dens, nu):
+def cold_opacity(element, dens=-1, nu=None):
     """
     Parameters:
     -----------
@@ -35,8 +36,14 @@ def cold_opacity(element, dens, nu):
         print "Warning: cold opacity files don't seem to exit; trying to download..."
         download_full(element)
     nu0, op0 = np.loadtxt(filepath).T
-    op = interp1d(nu0, op0)(nu)
-    if isinstance(dens, float):
+    if nu is not None:
+        op = interp1d(nu0, op0)(nu)
+    else:
+        op = op0
+    if isinstance(dens, numbers.Number):
+        if dens < 0:
+            dens = hedp.matdb(element).solid_dens
+
         return op*dens
     elif dens.ndim <= 1:
         return op*dens.reshape(-1,1)
