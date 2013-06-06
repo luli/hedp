@@ -3,3 +3,6 @@
 build/
 dist/
 *.egg-info
+*so
+*c
+*html

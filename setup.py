@@ -1,18 +1,32 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from setuptools import setup, find_packages
-from Cython.Build import cythonize
+from setuptools import setup, find_packages, Extension
+from Cython.Distutils import build_ext
 import numpy as np
-print np.get_include()
+import Cython.Compiler.Options
+
+Cython.Compiler.Options.annotate = True
+
+
+ext_modules=[
+    Extension("hedp.lib.integrators",
+             ["hedp/lib/integrators.pyx"],
+             extra_compile_args=[''],
+             extra_link_args=['']),
+    Extension("hedp.lib.selectors",
+             ["hedp/lib/selectors.pyx"],
+             extra_compile_args=[''],
+             extra_link_args=['']),
+]
 
 setup(name='hedp',
       version='0.1',
       description='Toolkit for HEDP experiments analysis and postprocessing of related radiative-hydrodynamic simulations',
       author='Roman Yurchak',
-      author_email='roman.yurchak@polytechnique.edu',
+      author_email='rth@crans.org',
       packages=find_packages(),
-      ext_modules = cythonize('hedp/lib/selectors.pyx'),
+      cmdclass = {'build_ext': build_ext},
+      ext_modules = ext_modules,
       include_dirs=[np.get_include()],
-      #extra_compile_args=['-O3']
      )
 

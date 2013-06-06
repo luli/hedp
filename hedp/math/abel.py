@@ -3,34 +3,28 @@
 # hedp module
 # Roman Yurchak, Laboratoire LULI, 11.2012
 
-import time
-import sys
-
 import numpy as np
-from scipy.integrate import simps
-from hedp.math.derivative import gradient
+from hedp.lib.integrators import abel_integrate
 
-
-
-def iabel(r, fr):
+def iabel(fr, dr=1):
     """
     Returns inverse Abel transform. See `abel` for input parameters.
 
     """
-    return abel(fr, r, inverse=True)
+    return abel(fr, dr, inverse=True)
 
-def abel(r, fr, inverse=False):
+def abel(fr, dr=1.0, inverse=False):
     """
     Returns the direct or inverse Abel transform of a function
     sampled at discrete points.
 
     This algorithm does a direct computation of the Abel transform:
       * integration near the singular value is done analytically
-      * integration further from the singular value with the trapezoidal
+      * integration further from the singular value with the Simpson
         rule.
 
-    There may be better/more general ways to do this especially regarding
-    resilience to noise. See:
+    There may be better/more general ways to do the inverse tranformation,
+    especially regarding resilience to noise. See:
       * One-dimensional tomography: a comparison of Abel, onion-peeling, and
       filtered backprojection methods. Cameron J. Dasch
       * Reconstruction of Abel-transformable images: The Gaussian basis-set
@@ -45,8 +39,8 @@ def abel(r, fr, inverse=False):
         input array to which direct/inversed Abel transform will be applied.
         For a 2d array, the first dimension is assumed to be the z axis and
         the second the r axis.
-    r:   1d array of the same length as fr.shape[-1]
-        array of radius at which fr is taken.
+    dr: float
+        space between samples
     inverse: boolean
         If True inverse Abel transform is applied.
 
@@ -57,54 +51,54 @@ def abel(r, fr, inverse=False):
     """
 
     assert type(fr).__name__ == 'ndarray'
-    if fr.ndim == 1:
-        fr = fr[np.newaxis, :]
-    if inverse:
-         fr = gradient(fr, r, axis=-1)
-    result = np.empty(fr.shape)
-    # build the integration kernel
-    R, Y = np.meshgrid(r, r)
-    I = R**2-Y**2
-    I = np.where(I>0, I, np.nan)  # remove invalid values to avoid warnings
-    I = 1./I**0.5
-    if not inverse:
-        I = I*R
-    # integrate avoiding singular values
-    for idx1 in range(len(r)-1):
-        result[:, idx1] = simps(fr[:, idx1+1:]*np.tile(I[idx1, idx1+1:],
-                                            (fr.shape[0],1)), r[idx1+1:])
-    result[:,-1] = 0 # setting last element of the output to 0
-    Yl = np.tile(r[:-1], (fr.shape[0], 1))
-    Ll = np.tile(r[1:],   (fr.shape[0], 1))
-    # linear interpolation of the function near the singular value used
-    # to compute the integral analytically
-    a = (fr[:,1:] - fr[:,:-1])/(Ll-Yl)
-    b = fr[:,1:] - a*r[1:]
-    # second part of the integral (computed analytically near the
-    # singular values.
-    dir_an = [lambda Yl, Ll, a: 0.5*(a*Yl**2*np.log(2*(Ll**2-Yl**2)**0.5+ 2*Ll)\
-                - a*Yl**2*np.log(2*Yl)\
-                + a*Ll*(Ll**2-Yl**2)**0.5),
-              lambda Yl, Ll, b:  b*(Ll**2-Yl**2)**0.5]
-    dir_an_axis = lambda Ll, a, b: 0.5*(a*Ll**2 + 2*b*Ll)
-    inv_an = [lambda Yl, Ll, a: a*(Ll**2-Yl**2)**0.5,
-              lambda Yl, Ll, b: b*np.log(2*(Ll**2-Yl**2)**0.5+ 2*Ll)\
-                            - b*np.log(2*Yl) ]
+    f = fr.copy()
 
-    if not inverse:
-        result[:,1:-1] += dir_an[0](Yl[:,1:], Ll[:,1:], a[:,1:])\
-                + dir_an[1](Yl[:,1:], Ll[:,1:] , b[:,1:])
-        result[:,0] += dir_an_axis(Ll[:,0], a[:,0], b[:,0])
-        result = 2*result
+    if fr.ndim == 1:
+        f = f.reshape((1, -1))
+
+    r = (np.arange(f.shape[1])+0.5)*dr
+
+    if inverse:
+        if f.shape[0] == 1:
+            # messy computation of the derivative in 1d
+            der = np.zeros(f.shape)
+            f0 = f[0]
+            der[0, 1:-1] = f0[2:] - f0[:-2]
+            der[0, 0] = f0[1] - f0[0]
+            der[0,-1] = f0[-1] - f0[-2]
+            f = - der/(2*dr*np.pi)
+        else:
+            f = - np.gradient(f)[-1]/(dr*np.pi)
     else:
-        result[:,1:-1] += inv_an[0](Yl[:,1:], Ll[:,1:], a[:,1:])\
-                + inv_an[1](Yl[:,1:], Ll[:,1:] , b[:,1:])
-        result[:,0] += inv_an[0](Yl[:,0], Ll[:,0], a[:,0])
-        result = -1.0/np.pi*result
-    if fr.shape[0] == 1:
-        return result[0]
+        f *= 2*r
+
+    out = abel_integrate(f, r)
+
+    if f.shape[0] == 1:
+        return out[0]
     else:
-        return result
+        return out
+
+def _abel_sym():
+    """
+    Analytical integration of the cell near the singular value in the abel transform
+    The resulting formula is implemented in hedp.lib.integrators.abel_integrate
+    """
+    from sympy import symbols, simplify, integrate, sqrt
+    from sympy.assumptions.assume import global_assumptions
+    r, y,r0, r1,r2, z,dr, c0, c_r, c_rr,c_z, c_zz, c_rz = symbols('r y r0 r1 r2 z dr c0 c_r c_rr c_z c_zz c_rz', positive=True)
+    f0, f1, f2 = symbols('f0 f1 f2')
+    global_assumptions.add(Q.is_true(r>y))
+    global_assumptions.add(Q.is_true(r1>y))
+    global_assumptions.add(Q.is_true(r2>y))
+    global_assumptions.add(Q.is_true(r2>r1))
+    P = c0 + (r-y)*c_r #+ (r-r0)**2*c_rr
+    K_d = 1/sqrt(r**2-y**2)
+    res = integrate(P*K_d, (r,y, r1))
+    sres= simplify(res)
+    print sres
+    
+
 
 def abel_analytical_step(r, fr_z, r0, r1):
     """
@@ -138,32 +132,43 @@ def sym_abel_step_1d(r, r0, r1):
 
 
 if __name__ == "__main__":
-    # just an example to illustrate the limitations of this algorthm
+    # just an example to illustrate the use of this algorthm
     import matplotlib.pyplot as plt
-    #sys.exit()
+    from time import time
+    import sys
 
-    n = 300
-    r = 5e-3*np.arange(n) 
-    r.sort()
 
-    splt= plt.subplot(211)
-    fr = np.zeros(n)
-    fr[(r>0.6*r.max())*(r<0.8*r.max())] = 1
-    fr += 1e-1*np.random.rand(n)
-    plt.plot(r,fr,'k.', label='Original signal')
-    F = abel(fr,r)
+    ax0= plt.subplot(211)
+    plt.title('Abel tranforms of a gaussian function')
+    n = 800
+    r = np.linspace(0, 20, n)
+    dr = np.diff(r)[0]
+    rc = 0.5*(r[1:]+r[:-1])
+    fr = np.exp(-rc**2)
+    #fr += 1e-1*np.random.rand(n)
+    plt.plot(rc,fr,'b', label='Original signal')
+    F = abel(fr,dr=dr)
+    F_a = (np.pi)**0.5*fr.copy()
+
+    F_i = abel(F,dr=dr, inverse=True)
     #sys.exit()
-    iF = iabel(F,r)
-    plt.plot(r, F, 'g--', label='Abel transform')
-    plt.plot(r, iF, 'r-', label='Reconstructed function')
+    plt.plot(rc, F_a, 'r', label='Direct transform [analytical expression]')
+    mask = slice(None,None,5)
+    plt.plot(rc[mask], F[mask], 'ko', label='Direct transform [computed]')
+    plt.plot(rc[mask], F_i[mask],'o',c='orange', label='Direct-inverse transform')
     plt.legend()
+    ax0.set_xlim(0,4)
+    ax0.set_xlabel('x')
+    ax0.set_ylabel("f(x)")
 
-    plt.subplot(212)
-    fr = np.abs(np.sinc(5*r/r.max()))
-    plt.plot(r, fr,'k.', label='Original signal')
-    F = abel(fr,r)
-    iF = iabel(F, r)
-    plt.plot(r, F, 'g--', label='Abel transform')
-    plt.plot(r, iF, 'r-', label='Reconstructed function')
+    ax1 = plt.subplot(212)
+    err1 = np.abs(F_a-F)/F_a
+    err2 = np.abs(fr-F_i)/fr
+    plt.semilogy(rc, err1, label='Direct transform error')
+    plt.semilogy(rc, err2, label='Direct-Inverse transform error')
+    #plt.semilogy(rc, np.abs(F-F_a), label='abs err')
+    ax1.set_ylabel('Relative error')
+    ax1.set_xlabel('x')
+
     plt.legend()
     plt.show()

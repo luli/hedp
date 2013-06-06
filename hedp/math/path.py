@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-from .cython import rect_mask_comp
+from hedp.lib.selectors import rect_mask_comp
 
 SMALL=1.0e-16
 
