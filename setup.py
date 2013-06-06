@@ -10,13 +10,11 @@ Cython.Compiler.Options.annotate = True
 
 ext_modules=[
     Extension("hedp.lib.integrators",
-             ["hedp/lib/integrators.pyx"],
-             extra_compile_args=[''],
-             extra_link_args=['']),
+             ["hedp/lib/integrators.pyx"],),
     Extension("hedp.lib.selectors",
-             ["hedp/lib/selectors.pyx"],
-             extra_compile_args=[''],
-             extra_link_args=['']),
+             ["hedp/lib/selectors.pyx"],)
+             #extra_compile_args=[''],
+             #extra_link_args=['']),
 ]
 
 setup(name='hedp',
