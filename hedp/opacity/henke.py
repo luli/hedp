@@ -12,12 +12,20 @@ from scipy.interpolate import interp1d
 import hedp
 from time import time
 import numbers
+import tables
 #from pyquery import PyQuery as pq
 #try:
 #    from .. import matdb
 #except ValueError:
 #    sys.path.append('../')
 #    import matdb
+
+HENKE_DATA_PATH = os.path.join(hedp.MATDB_PATH, 'henke_op.h5')
+
+# creating an empty DB file if non existant
+if not os.path.exists(HENKE_DATA_PATH):
+    with tables.openFile(HENKE_DATA_PATH, 'w') as f:
+        pass
 
 def cold_opacity(element, dens=-1, nu=None):
     """
@@ -31,11 +39,16 @@ def cold_opacity(element, dens=-1, nu=None):
     --------
         opacity in cm⁻¹
     """
-    filepath = os.path.join(hedp.MATDB_PATH, 'henke', element+'.dat')
-    if not os.path.exists(filepath):
-        print "Warning: cold opacity files don't seem to exit; trying to download..."
-        download_full(element)
-    nu0, op0 = np.loadtxt(filepath).T
+    with tables.openFile(HENKE_DATA_PATH, 'r') as f:
+        if not '/'+element in f:
+            print "Warning: couldn't find cold opacity for {0} ; trying to download...".format(element)
+            f.close()
+            download_full(element)
+            f = tables.openFile(HENKE_DATA_PATH, 'r')
+
+        nu0 = getattr(f.root, element).nu[:]
+        op0 = getattr(f.root, element).op[:]
+
     if nu is not None:
         op = interp1d(nu0, op0)(nu)
     else:
@@ -43,17 +56,11 @@ def cold_opacity(element, dens=-1, nu=None):
     if isinstance(dens, numbers.Number):
         if dens < 0:
             dens = hedp.matdb(element).solid_dens
-
         return op*dens
     elif dens.ndim <= 1:
         return op*dens.reshape(-1,1)
     elif dens.ndim == 2:
         return dens[:,:,np.newaxis]*op[np.newaxis, np.newaxis, :]
-
-        ## this works but is soo slow
-        #op = np.array([dens*op_at_nu for op_at_nu in np.nditer(op)])
-        #print np.rollaxis(op, 0, 3).shape
-        #return np.rollaxis(op, 0, 3) # setting this to be the right shape
 
 
 def download_full(element):
@@ -71,11 +78,14 @@ def download_full(element):
     nu = np.concatenate(nu_tot)
     _, mask = np.unique(nu, return_index=True)
 
-    op = op[mask]
-    nu = nu[mask]
-    print op.shape, nu.shape
-    save2matdb(element, nu, op)
+    data = {'op': op[mask], 'nu': nu[mask]}
 
+    with tables.openFile(HENKE_DATA_PATH, 'a') as f:
+        atom = tables.Atom.from_dtype(data['op'].dtype)
+        group = f.createGroup(f.root, element)
+        for name, arr in data.iteritems():
+            ds = f.createCArray(group, name, atom, arr.shape)
+            ds[:] = arr
 
 
 def download(formula, dens, nu=(10,20000)):
@@ -95,10 +105,10 @@ def download(formula, dens, nu=(10,20000)):
 
     """
     br = mechanize.Browser(factory=mechanize.RobustFactory())
-    br.addheaders = [('User-agent',
-        'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.1) \
-        Gecko/2008071615 Fedora/3.0.1-1.fc9 Firefox/3.0.1')]
-    #br.set_proxies({"http":"cache.polytechnique.fr:8080"})
+    #br.addheaders = [('User-agent',
+    #    'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.1) \
+    #    Gecko/2008071615 Fedora/3.0.1-1.fc9 Firefox/3.0.1')]
+    #br.set_proxies({"http":"this_proxy.com:8080"})
     post_vars = dict(Material="Enter Formula",
             Scan="Energy",
             Npts=500,
@@ -138,18 +148,12 @@ def parse(path):
     op = np.abs(np.log(op) / ( thick * 1e-4 * dens))
     return nu, op
 
-def save2matdb(element, nu, op):
-    """Takes a file and saves it to MATDB"""
-
-    filepath = os.path.join(hedp.MATDB_PATH, 'henke', element+'.dat')
-    np.savetxt(filepath, np.array([nu, op]).T)
-
 if __name__=='__main__':
     import matplotlib.pylab as plt
     #nu, op = download('Al', 1.24)
     #save2matdb('Al', nu, op)
     #download_full('polystyrene')
-    op =  get_cold_opacity('TMPTA_Br30',
+    op =  cold_opacity('TMPTA_Br30',
             np.array([[0.1], [0.3]]),
             [100])
     #plt.loglog(nu, op)
