@@ -56,7 +56,7 @@ class HamamatsuFile(object):
         if (type(offset) is str and\
                 offset not in ['auto', 'from_end', 'from_end_4k']) and\
                 (type(offset) is not int):
-            raise ValueError("Wrong input value for 'offset' input parameter!")
+            raise ValueError("Wrong input value for 'offset' input parameter! Acceptable values are 'auto', 'from_end', 'from_end_4k'.")
         self._offset_input = offset
         self._read_header()
         self._read_data()
