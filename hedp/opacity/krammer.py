@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
+from scipy import constants as cst
 def kramer_unsoldt_opacity(dens, Z, A, Zbar, Te, lmbda):
     """
     Computes the  Kramer-Unsoldt opacity [Zel’dovich & Raizer 1967 p 27]
@@ -25,6 +26,6 @@ def kramer_unsoldt_opacity(dens, Z, A, Zbar, Te, lmbda):
     Ibar = np.fmax(Ibar, 6.0)
     y = 1240./(lmbda * Te)
     y1 = Ibar / Te
-    Ni = dens * NA_CST / A
+    Ni = dens * cst.N_A / A
     #print Ibar, y, y1, Ni
     return np.fmax(7.13e-16* Ni * (Zbar + 1)**2 * np.exp(y - y1) / (Te**2*y**3), 1e-16)

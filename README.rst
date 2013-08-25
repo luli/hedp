@@ -11,4 +11,6 @@ General purpose scripts to analyse HEDP experimental data and related hydrodynam
 Installation in developpement mode
 ==================================
 
+```bash
 python setup.py build_ext --inplace  && python setup.py develop --user
+```

@@ -11,14 +11,13 @@ import tables
 import yt.mods
 import flash.output
 import hedp
-from hedp.pp.abel import abel
+from hedp.math.abel import abel
 import hedp.opacity.henke
 from hedp.diags.xray import xray_filter_transmission, Kalpha_profile,\
                                 ff_profile,ip_sensitivity
-#import polar.sim.plots
 
 from time import time
-
+from numexpr import evaluate
 
 
 warnings.simplefilter("ignore")
@@ -61,9 +60,10 @@ def fslice(filename, fields, resolution=800, cache="/dev/shm", bounds=None):
 
         def _get_a_field(field):
             # fixing the stupid dot problem
-            if field == "dot":
-                field = "dot "
-            R, Z, D = flash.output.slice(2, 0.0, field, pf, resolution=resolution, bounds=bounds)
+            ffield = field
+            if 'packmeshchkreadhdf5' not in pf:
+               ffield = '{:<4s}'.format(field)
+            R, Z, D = flash.output.slice(2, 0.0, ffield, pf, resolution=resolution, bounds=bounds)
             return R, Z, D
 
         D_unsorted = map(_get_a_field, fields)
@@ -117,13 +117,17 @@ def xray_pp_2d(d, species, nu, spect_ip):
     spect_ip = spect_ip[np.newaxis, np.newaxis, :]
     dnu = np.diff(nu)[0]
     nu = nu#[np.newaxis, np.newaxis, :]
-
+    species_keys = sorted(species.keys())
 
     # projected density
-    pd = {key: abel(d.r[0], d['dens']*d[key]) for key in species}
+    dr = np.diff(d['r'])[0,0]
+    pd = {key: abel(d['dens']*d[key], dr) for key in species}
     # getting the opacity
     op = {key: hedp.opacity.henke.cold_opacity(species[key], pd[key], nu) for key in species}
-    op  = np.sum(np.array([op[key] for key in species]), axis=0)
+
+
+    op  = hedp.math.add_multiple(*[op[key] for key in species])
+    
 
     tm = np.sum(spect_ip * np.exp(-op), axis=-1)*dnu
     return tm

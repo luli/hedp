@@ -48,6 +48,7 @@ def cold_opacity(element, dens=-1, nu=None):
 
         nu0 = getattr(f.root, element).nu[:]
         op0 = getattr(f.root, element).op[:]
+        f.close()
 
     if nu is not None:
         op = interp1d(nu0, op0)(nu)
@@ -138,7 +139,7 @@ def parse(path):
     """
     with open(path, 'r') as f:
         header = f.readline()
-    regexp = r'^[\s\w]+=(?P<dens>[0-9.]+)[\s\w]+=(?P<thick>[0-9.]+)'
+    regexp = r'^[\s\w]+=(?P<dens>(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)+)[\s\w]+=(?P<thick>[0-9.]+)'
     try:
         dens, thick  = re.match(regexp, header).groups()
         dens, thick = float(dens), float(thick)

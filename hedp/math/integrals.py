@@ -19,7 +19,7 @@ def Int_super_gaussian(a, r_c, gamma):
     """
     res =  quad(super_gaussian_dr, 0, r_c+20*a, args=(a,r_c, gamma), 
             points=[r_c])
-    if res[1] < 1e-6:
+    if res[1] < 1e-6 and res[0] != 0:
         return res[0]
     else:
         raise ValueError("Quad integration was not convergent: error {0}".format(res[1]))
