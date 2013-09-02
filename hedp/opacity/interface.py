@@ -2,7 +2,11 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from henke import cold_opacity
-from snop import snop_opacity
+try:
+    from snop import snop_opacity
+    SNOP_PRESENT = True
+except ImportError:
+    SNOP_PRESENT = True
 
 def opacity_map( dens, tele, mat, nu, code='snop', mat_names=None):
     assert dens.shape == tele.shape, 'dens and tele arrays should be of the same shape'
@@ -16,15 +20,13 @@ def opacity_map( dens, tele, mat, nu, code='snop', mat_names=None):
         else:
             mat_name = mat_el
         if code == 'snop':
-            op[mat_mask] = snop_opacity(mat_name, dens[mat_mask],
-                    np.ones(tele[mat_mask].shape),
-                    #tele[mat_mask],
-                    nu)
+            if SNOP_PRESENT:
+                op[mat_mask] = snop_opacity(mat_name, dens[mat_mask],
+                        np.ones(tele[mat_mask].shape),
+                        #tele[mat_mask],
+                        nu)
+            else:
+                raise ValueError("Trying to use SNOP backend, but pysnop doesn't seem to be installed")
         elif code == 'henke':
             op[mat_mask] = cold_opacity(mat_name, dens[mat_mask], nu)
     return op
-
-
-
-
-
