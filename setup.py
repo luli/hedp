@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup, find_packages, Extension
 from Cython.Distutils import build_ext
+from distutils.core import setup
+from distutils.extension import Extension
 import numpy as np
 import Cython.Compiler.Options
 
-Cython.Compiler.Options.annotate = True
+#Cython.Compiler.Options.annotate = True
 
 
 ext_modules=[
