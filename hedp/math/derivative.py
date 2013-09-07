@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from scipy.linalg import circulant
+import scipy.ndimage as nd
 
 def gradient(f, x=None, dx=1, axis=-1):
     """
@@ -121,6 +122,20 @@ def savgol(x, y, window_size=3, order=2, deriv=0):
             cpoly = np.polyder(cpoly, deriv)
         z[idx] = np.polyval(cpoly, x[idx])
     return z
+
+def laplace(f, dx):
+    """Compute laplace operator assyming cylindrical geometry
+    Parameters:
+    -----------
+     - f is an array of the shape (z,r)
+     - dx: float: sampling distance (must be the same in x,y) [cm]
+    """
+    flarge = np.zeros((f.shape[0]+2, f.shape[1]+2)) # assume that everything is zero at the edges
+    flarge[1:-1,1:-1] = f
+    flarge[:,0] = flarge[:,1] # f(-r,z) = f(r,z)
+    df = nd.filters.laplace(flarge)*dx**2
+    return df[1:-1,1:-1]
+
 
 class TestDeriv(object):
     def test_sav_gol(self):

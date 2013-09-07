@@ -9,3 +9,4 @@ from matdb import matdb, MATDB_PATH, Storage
 
 import cst
 import pp
+import plasma_physics

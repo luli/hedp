@@ -5,12 +5,11 @@
 
 import re
 import numpy as np
-#import codecs
 
 
 
 class HamamatsuFile(object):
-    def __init__(self, filename, offset='auto'):
+    def __init__(self, filename, offset='from_end', nbytes=2):
         """ A parser to read Hamamatsu streak camera's .img output files.
         This code was partly adapted from an ImageJ plugin.
 
@@ -58,6 +57,7 @@ class HamamatsuFile(object):
                 (type(offset) is not int):
             raise ValueError("Wrong input value for 'offset' input parameter! Acceptable values are 'auto', 'from_end', 'from_end_4k'.")
         self._offset_input = offset
+        self._nbytes = nbytes
         self._read_header()
         self._read_data()
 
@@ -85,8 +85,8 @@ class HamamatsuFile(object):
         self._offset_whence = 0
         if type(self._offset_input) is str:
             offset_list = {'auto': self._offset_auto,
-                           'from_end': -np.prod(self.shape)*2,
-                           'from_end_4k': - np.prod(self.shape)*2 - 4092}
+                           'from_end': -np.prod(self.shape)*self._nbytes,
+                           'from_end_4k': - np.prod(self.shape)*self._nbytes - 4092}
 
             self._offset_data = offset_list[self._offset_input]
             if self._offset_input.startswith('from_end'):
@@ -166,9 +166,13 @@ if __name__ == '__main__':
     elif sum([key in args.filepath for key in ['Transverse_SOP_1D']]):
         offset =  'from_end'
     print offset
+    offset = 'from_end'
 
 
     sp = HamamatsuFile(args.filepath, offset)
+    print sp._offset_data
+    print sp.data.shape
+    d = sp.data
     cs = plt.imshow(sp.data, vmax=np.percentile(sp.data, 99.9))
 
     plt.colorbar(cs)
