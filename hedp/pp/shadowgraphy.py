@@ -3,26 +3,24 @@
 
 import sys
 import os, os.path
-import hashlib
 import warnings
 
-import numpy as np
-import tables
-import yt.mods
-import flash.output
-import hedp
 from hedp.math.abel import abel 
 from hedp.math.derivative import laplace
-from scipy.constants import N_A
 from hedp.plasma_physics import critical_density
 
-from numexpr import evaluate
+#from numexpr import evaluate
 import scipy.ndimage as nd
 
 
 warnings.simplefilter("ignore")
 
+<<<<<<< HEAD
 def simulated_shadowgraphy(d, lmbda, L=10):
+=======
+
+def synthetic_shadowgraphy_cyl(d, lmbda, L=10):
+>>>>>>> ae867308b3c1efbe1d88005aaef0d56baca088d3
     """
     Compute angle of refraction for a plasma assuming cylindrical symmetry on an axis
     orthogonal to the propagation axis.
@@ -43,7 +41,11 @@ def simulated_shadowgraphy(d, lmbda, L=10):
 
     Source: Shlieren and shadowgraph techniques. G.Settles 
     """
+<<<<<<< HEAD
     Ne = d['dens']*N_A*d['zbar']/d['abar']
+=======
+    Ne = d['nele']
+>>>>>>> ae867308b3c1efbe1d88005aaef0d56baca088d3
     Nc = critical_density(lmbda)
 
     Ref = np.sqrt(1 - Ne/Nc)
