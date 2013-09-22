@@ -54,7 +54,6 @@ def fslice(filename, fields, resolution=800, cache="/dev/shm", bounds=None):
 
     if not cache or cache and cache_miss:
         pf = yt.mods.load(filename)
-        print filename
 
         d = {}
 

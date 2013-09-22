@@ -1,9 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 from setuptools import setup, find_packages, Extension
+from setuptools import find_packages
 from Cython.Distutils import build_ext
-from distutils.core import setup
-from distutils.extension import Extension
+#from distutils.core import setup
+#from distutils.extension import Extension
 import numpy as np
 import Cython.Compiler.Options
 

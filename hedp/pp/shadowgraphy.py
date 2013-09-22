@@ -22,40 +22,6 @@ import scipy.ndimage as nd
 
 warnings.simplefilter("ignore")
 
-
-def xray_pp_2d(d, species, nu, spect_ip):
-    """
-    Postprocess simulation to produce Xray
-    
-    Parameters:
-    -----------
-      - d [dict]:  data with all the fields
-      - species [dict]: of species
-      - nu [ndarray]: array of frequences [eV]
-      - spect_ip [ndarray]: normalized spectra on ip
-
-    Returns:
-    --------
-      - trans [ndarray]: transmissions
-    """
-    spect_ip = spect_ip[np.newaxis, np.newaxis, :]
-    dnu = np.diff(nu)[0]
-    nu = nu#[np.newaxis, np.newaxis, :]
-    species_keys = sorted(species.keys())
-
-    # projected density
-    dr = np.diff(d['r'])[0,0]
-    pd = {key: abel(d['dens']*d[key], dr) for key in species}
-    # getting the opacity
-    op = {key: hedp.opacity.henke.cold_opacity(species[key], pd[key], nu) for key in species}
-
-
-    op  = hedp.math.add_multiple(*[op[key] for key in species])
-    
-
-    tm = np.sum(spect_ip * np.exp(-op), axis=-1)*dnu
-    return tm
-
 def simulated_shadowgraphy(d, lmbda, L=10):
     """
     Compute angle of refraction for a plasma assuming cylindrical symmetry on an axis
@@ -77,7 +43,7 @@ def simulated_shadowgraphy(d, lmbda, L=10):
 
     Source: Shlieren and shadowgraph techniques. G.Settles 
     """
-    Ne = d['dens']*d['Na']*d['Zbar']/d['Abar']
+    Ne = d['dens']*N_A*d['zbar']/d['abar']
     Nc = critical_density(lmbda)
 
     Ref = np.sqrt(1 - Ne/Nc)
@@ -85,7 +51,8 @@ def simulated_shadowgraphy(d, lmbda, L=10):
 
     dr = np.diff(d['r'])[0,0]
     Ref_dl = abel(Ref, dr)
-    d2Ref_dl = laplace(Ref_dl)
+    d2Ref_dl = laplace(Ref_dl, dr)
+    return d2Ref_dl
     dI0 = 1./(1. + L*d2Ref_dl)
     return dI0
 
