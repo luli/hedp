@@ -9,6 +9,7 @@ import warnings
 import numpy as np
 import tables
 import yt.mods
+from yt.frontends.flash.data_structures import FLASHStaticOutput
 import flash.output
 import hedp
 from hedp.math.abel import abel
@@ -53,8 +54,10 @@ def fslice(filename, fields, resolution=800, cache="/dev/shm", bounds=None):
 
 
     if not cache or cache and cache_miss:
-        pf = yt.mods.load(filename)
-        print filename
+        #pf = yt.mods.load(filename)
+        print 'ok'
+        pf = yt.frontends.flash.data_structures.FLASHStaticOutput(filename)
+        #print filename
 
         d = {}
 

@@ -133,7 +133,7 @@ def laplace(f, dx):
     flarge = np.zeros((f.shape[0]+2, f.shape[1]+2)) # assume that everything is zero at the edges
     flarge[1:-1,1:-1] = f
     flarge[:,0] = flarge[:,1] # f(-r,z) = f(r,z)
-    df = nd.filters.laplace(flarge)*dx**2
+    df = nd.filters.laplace(flarge)/(dx**2)
     return df[1:-1,1:-1]
 
 
