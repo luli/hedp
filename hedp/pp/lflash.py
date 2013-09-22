@@ -54,14 +54,9 @@ def fslice(filename, fields, resolution=800, cache="/dev/shm", bounds=None):
 
 
     if not cache or cache and cache_miss:
-<<<<<<< HEAD
         pf = yt.mods.load(filename)
-=======
-        #pf = yt.mods.load(filename)
-        print 'ok'
-        pf = yt.frontends.flash.data_structures.FLASHStaticOutput(filename)
+        #pf = yt.frontends.flash.data_structures.FLASHStaticOutput(filename)
         #print filename
->>>>>>> ae867308b3c1efbe1d88005aaef0d56baca088d3
 
         d = {}
 
@@ -105,42 +100,3 @@ def fslice(filename, fields, resolution=800, cache="/dev/shm", bounds=None):
         d['filename'] = filename
 
     return hedp.Storage(d)
-
-def xray_pp_2d(d, species, nu, spect_ip):
-    """
-    Postprocess simulation to produce Xray
-    
-    Parameters:
-    -----------
-      - d [dict]:  data with all the fields
-      - species [dict]: of species
-      - nu [ndarray]: array of frequences [eV]
-      - spect_ip [ndarray]: normalized spectra on ip
-
-    Returns:
-    --------
-      - trans [ndarray]: transmissions
-    """
-    spect_ip = spect_ip[np.newaxis, np.newaxis, :]
-    dnu = np.diff(nu)[0]
-    nu = nu#[np.newaxis, np.newaxis, :]
-    species_keys = sorted(species.keys())
-
-    # projected density
-    dr = np.diff(d['r'])[0,0]
-    pd = {key: abel(d['dens']*d[key], dr) for key in species}
-    # getting the opacity
-    op = {key: hedp.opacity.henke.cold_opacity(species[key], pd[key], nu) for key in species}
-
-
-    op  = hedp.math.add_multiple(*[op[key] for key in species])
-    
-
-    tm = np.sum(spect_ip * np.exp(-op), axis=-1)*dnu
-    return tm
-
-
-
-
-
-
