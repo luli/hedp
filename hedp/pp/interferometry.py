@@ -34,7 +34,7 @@ def synthetic_phase_shift_cyl(d, lmbda):
     mu = np.sqrt(1 - Ne/Nc) - 1
     mu[Ne>Nc] = np.nan
 
-    dr = np.diff(d['r'])[0,0]
+    dr = np.diff(d['x'])[0,0]
     mu_dl = abel(mu, dr)/(2*lmbda*1e-9*1e2)
     
     return  np.ma.array(mu_dl, mask=np.isnan(mu_dl))

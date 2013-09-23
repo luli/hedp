@@ -50,7 +50,7 @@ def abel(fr, dr=1.0, inverse=False):
         with either the direct or the inverse abel transform.
     """
 
-    assert type(fr).__name__ == 'ndarray'
+    assert isinstance(fr, np.ndarray)
     f = fr.copy()
 
     if fr.ndim == 1:

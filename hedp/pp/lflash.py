@@ -23,7 +23,7 @@ from numexpr import evaluate
 
 warnings.simplefilter("ignore")
 
-def fslice(filename, fields, resolution=800, cache="/dev/shm", bounds=None):
+def fslice(filename, fields, resolution=800, cache="/dev/shm", bounds=None, method='nearest'):
     """
     Load and cache filelds from a FLASH output
 
@@ -33,11 +33,11 @@ def fslice(filename, fields, resolution=800, cache="/dev/shm", bounds=None):
       - fileds [list]: a list of fields we want to load
       - resolution [int]: requested resolution
       - cache [bool or str]: cache the output somewhere
+      - method:  interpolation to use in scipy.interpolate.griddata
     """
     # doing some homogenization
 
     filename = os.path.abspath(filename)
-    resolution = int(resolution)
     fields = sorted(fields)  
     cache_miss = True
 
@@ -65,7 +65,7 @@ def fslice(filename, fields, resolution=800, cache="/dev/shm", bounds=None):
             ffield = field
             if 'packmeshchkreadhdf5' not in pf:
                ffield = '{:<4s}'.format(field)
-            R, Z, D = flash.output.slice(2, 0.0, ffield, pf, resolution=resolution, bounds=bounds)
+            R, Z, D = flash.output.slice(2, 0.0, ffield, pf, resolution=resolution, bounds=bounds, method=method)
             return R, Z, D
 
         D_unsorted = map(_get_a_field, fields)
@@ -74,6 +74,9 @@ def fslice(filename, fields, resolution=800, cache="/dev/shm", bounds=None):
             d[key] = val[2]
         d['z'] = val[1]
         d['r'] = val[0]
+        d['x'] = d['r']
+        d['y'] = d['z']
+
 
     if cache:
         if cache_miss:

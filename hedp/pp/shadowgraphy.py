@@ -5,6 +5,8 @@ import sys
 import os, os.path
 import warnings
 
+import numpy as np
+
 from hedp.math.abel import abel 
 from hedp.math.derivative import laplace
 from hedp.plasma_physics import critical_density
@@ -39,12 +41,13 @@ def synthetic_shadowgraphy_cyl(d, lmbda, L=10):
     Ne = d['nele']
     Nc = critical_density(lmbda)
 
-    Ref = np.sqrt(1 - Ne/Nc)
+    Ref = 1 - np.sqrt(1 - Ne/Nc)
     Ref[Ne>Nc] = np.nan
 
     dr = np.diff(d['r'])[0,0]
     Ref_dl = abel(Ref, dr)
     d2Ref_dl = laplace(Ref_dl, dr)
+    #pval =  (np.abs(np.gradient(Ref_dl)[0])/dr + np.abs(np.gradient(Ref_dl)[1])/dr)*180/np.pi
     return d2Ref_dl
     dI0 = 1./(1. + L*d2Ref_dl)
     return dI0
