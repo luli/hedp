@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 import hedp
 from hedp.opacity.henke import cold_opacity
-from scipy.odr import odrpack as odr
 import numpy as np
 
 def photon_deposition_depth(nu, op, I0, depth):
@@ -125,6 +124,7 @@ def compute_spectra(pars, nu, bl_el='Cl'):
     return spectra
 
 class StepsIP(object):
+
     def __init__(self, mat, thick, transm, nu=np.linspace(10,20e3,1000),
             filters={}):
         """
@@ -152,6 +152,7 @@ class StepsIP(object):
         return sp_tr
 
     def estimate_spectra(self):
+        from scipy.odr import odrpack as odr
         def ofunc(pars, x, sp_sens, nu, el):
             a, b, dkalpha, tele = pars
             spectra = a*Kalpha_profile(el, nu, dkalpha) + b*ff_profile(nu, tele)

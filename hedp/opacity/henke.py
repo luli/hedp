@@ -10,9 +10,9 @@ import urllib
 from scipy.interpolate import interp1d
 
 import hedp
+import tables
 from time import time
 import numbers
-import tables
 #from pyquery import PyQuery as pq
 #try:
 #    from .. import matdb
@@ -27,7 +27,7 @@ if not os.path.exists(HENKE_DATA_PATH):
     with tables.openFile(HENKE_DATA_PATH, 'w') as f:
         pass
 
-def cold_opacity(element, dens=-1, nu=None):
+def cold_opacity(element, dens=-1, nu=None, hdf5_backend='h5py'):
     """
     Parameters:
     -----------
@@ -35,20 +35,35 @@ def cold_opacity(element, dens=-1, nu=None):
      - dens [float or ndarray]: array of densities [g.cm⁻³]
      - nu [ndarray]: array of energies [eV]
           must be between [10 eV, 30 keV]
+     - hdf5_backend [str]: pytables or h5py [use because of
+              a bug between pytables and yt]
     Returns:
     --------
         opacity in cm⁻¹
     """
-    with tables.openFile(HENKE_DATA_PATH, 'r') as f:
-        if not '/'+element in f:
-            print "Warning: couldn't find cold opacity for {0} ; trying to download...".format(element)
+    if hdf5_backend == 'h5py':
+        import h5py
+        with h5py.File(HENKE_DATA_PATH, 'r') as f:
+            if not '/'+element in f:
+                print "Warning: couldn't find cold opacity for {0} ; trying to download...".format(element)
+                f.close()
+                download_full(element)
+                f = h5py.File(HENKE_DATA_PATH, 'r')
+            nu0 = f[element]['nu'][:]
+            op0 = f[element]['op'][:]
             f.close()
-            download_full(element)
-            f = tables.openFile(HENKE_DATA_PATH, 'r')
+    elif hdf5_backend == 'pytables':
+        with tables.open_file(HENKE_DATA_PATH, 'r') as f:
+            print 'ok'
+            if not '/'+element in f:
+                print "Warning: couldn't find cold opacity for {0} ; trying to download...".format(element)
+                f.close()
+                download_full(element)
+                f = tables.openFile(HENKE_DATA_PATH, 'r')
 
-        nu0 = getattr(f.root, element).nu[:]
-        op0 = getattr(f.root, element).op[:]
-        f.close()
+            nu0 = getattr(f.root, element).nu[:]
+            op0 = getattr(f.root, element).op[:]
+            f.close()
 
     if nu is not None:
         op = interp1d(nu0, op0)(nu)
