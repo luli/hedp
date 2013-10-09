@@ -22,23 +22,25 @@ def critical_density(lmbda):
     omega = 2*np.pi*c/lmbda
     return 1e-6*epsilon_0*m_e*omega**2/e**2
 
-def coulomb_logarithm(nele, zbar,tele):
+def coulomb_logarithm(nele, znuc,tele):
     """
     Compute Coulomb logarithm
 
     Parameters:
     -----------
      - nele: electron density in [cm⁻³]
-     - zbar: mean ionization
-     - tele: mean temperature in K
+     - znuc: nuclear charge
+     - tele: mean temperature in [eV]
 
      Returns:
      --------
         ln Λ
     """
-    Ne = nele*1e6 # cm⁻³ to m⁻³
-    Lambda = (3.*(k**3*tele**3/(np.pi*Ne))**0.5) / (2*zbar*e**3)
-    return np.log(Lambda)
+    #Ne = nele*1e6 # cm⁻³ to m⁻³
+    #tele = tele*eV2K
+    #Lambda = (3.*(k*tele)**(3./2))/(4*(np.pi*Ne)**0.5 * (znuc*e)**3)
+
+    return np.fmax(2, 24. - np.log(nele**0.5/tele))
 
 def ei_collision_rate(nele, zbar,tele):
     """
@@ -77,4 +79,38 @@ def ff_collision_frequency(nele, zbar,tele, lmbda):
     nu_ff = (nele*nu_ei/nc)*(1/(1 - nele/nc)**0.5)
     nu_ff[nele>nc] = np.nan
     return nu_ff
+
+def isentropic_sound_speed(Abar, Zbar, gamma, tele):
+    """
+    Compute the ion sound speed for an ideal gas (NRL formulary):
+
+    Parameters:
+    -----------
+     - Abar: atomic number
+     - Zbar: mean ionization
+     - gamma: adiabatic index
+     - tele: electron temperature [eV]
+    Returns:
+    -----------
+     adiabatic sound speed [km/s]
+    """
+    return 9.79*(gamma*Zbar*tele/Abar)**0.5
+
+def spitzer_conductivity(nele, tele, znuc, zbar):
+    """
+    Compute the Spitzer conductivity
+    Parameters:
+    -----------
+     - nele [g/cm³]
+     - tele [eV]
+     - znuc: nuclear charge
+     - zbar: mean ionization
+
+    Returns:
+    --------
+     - Spitzer conductivity [Ω⁻¹.cm⁻¹]
+    """
+
+    lnLam = coulomb_logarithm(nele, znuc, tele)
+    return 1./(1.03e-2*lnLam*zbar*(tele)**(-3./2))
 
