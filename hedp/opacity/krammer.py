@@ -1,12 +1,16 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+# Copyright CNRS 2012
+# Roman Yurchak (LULI)
+# This software is governed by the CeCILL-B license under French law and
+# abiding by the rules of distribution of free software.
+
 import numpy as np
 
 from scipy import constants as cst
 def kramer_unsoldt_opacity(dens, Z, A, Zbar, Te, lmbda):
     """
     Computes the  Kramer-Unsoldt opacity [Zel’dovich & Raizer 1967 p 27]
-    cf. Thèse de Tommaso
     
     Parameters:
     -----------

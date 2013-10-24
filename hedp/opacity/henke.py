@@ -1,5 +1,10 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
+# Copyright CNRS 2012
+# Roman Yurchak (LULI)
+# This software is governed by the CeCILL-B license under French law and
+# abiding by the rules of distribution of free software.
+
 import re
 import os
 import sys
@@ -27,7 +32,7 @@ if not os.path.exists(HENKE_DATA_PATH):
     with tables.openFile(HENKE_DATA_PATH, 'w') as f:
         pass
 
-def cold_opacity(element, dens=-1, nu=None, hdf5_backend='h5py'):
+def cold_opacity(element, dens=-1, nu=None, hdf5_backend='pytables'):
     """
     Parameters:
     -----------
@@ -54,7 +59,6 @@ def cold_opacity(element, dens=-1, nu=None, hdf5_backend='h5py'):
             f.close()
     elif hdf5_backend == 'pytables':
         with tables.open_file(HENKE_DATA_PATH, 'r') as f:
-            print 'ok'
             if not '/'+element in f:
                 print "Warning: couldn't find cold opacity for {0} ; trying to download...".format(element)
                 f.close()

@@ -1,5 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+# Copyright CNRS 2012,
+# Roman Yurchak (LULI)
+# This software is governed by the CeCILL-B license under French law and
+# abiding by the rules of distribution of free software.
+
 from setuptools import setup, find_packages, Extension
 from setuptools import find_packages
 from Cython.Distutils import build_ext

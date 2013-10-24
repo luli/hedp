@@ -3,6 +3,11 @@
 # cython: cdivision=True
 # cython: wraparound=False
 ## cython: profile=True
+## Copyright CNRS 2012
+## Roman Yurchak (LULI)
+## This software is governed by the CeCILL-B license under French law and
+## abiding by the rules of distribution of free software.
+
 import numpy as np
 cimport numpy as np
 from libc.math cimport sqrt, acosh
