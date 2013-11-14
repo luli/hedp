@@ -119,3 +119,21 @@ def spitzer_conductivity(nele, tele, znuc, zbar):
     lnLam = coulomb_logarithm(nele, znuc, tele)
     return 1./(1.03e-2*lnLam*zbar*(tele)**(-3./2))
 
+
+def spitzer_conductivity2(nele, tele, znuc, zbar):
+    """
+    Compute the Spitzer conductivity
+    Parameters:
+    -----------
+     - nele [g/cm³]
+     - tele [eV]
+     - znuc: nuclear charge
+     - zbar: mean ionization
+
+    Returns:
+    --------
+     - Spitzer conductivity [cm².s⁻¹]
+    """
+
+    lnLam = coulomb_logarithm(nele, znuc, tele)
+    return 2e21*tele**(5./2)/(lnLam*nele*(zbar+1))

@@ -6,6 +6,7 @@
 # abiding by the rules of distribution of free software.
 
 
-from ionization import thomas_fermi_ionization
-from ionmix import ionmix_validity
+from .ionization import thomas_fermi_ionization
+from .ionmix import ionmix_validity
+from .interface import EosInterface
 

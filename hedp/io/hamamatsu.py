@@ -5,14 +5,11 @@
 # This software is governed by the CeCILL-B license under French law and
 # abiding by the rules of distribution of free software.
 
-
 import re
 import numpy as np
 
-
-
 class HamamatsuFile(object):
-    def __init__(self, filename, offset='from_end', nbytes=2):
+    def __init__(self, filename, offset='from_end', nbytes=4):
         """ A parser to read Hamamatsu streak camera's .img output files.
         This code was partly adapted from an ImageJ plugin.
 
@@ -22,7 +19,8 @@ class HamamatsuFile(object):
          - offset [str or int]: the method to use when computing the
                offset. Can be :
                    * 'auto' : try to read the offset in the header.
-                        Should work for most cases, but may occasionnaly fail.
+                     That should be the normal way of getting to offset,
+                     but it doesn't really work.
                    * 'from_end': get offset as data_size - image_size
                    * 'from_end_4k': same as 'from_end' but additionnaly
                         substract 4092 (seems to be streak dependant..)
@@ -122,7 +120,12 @@ class HamamatsuFile(object):
         """
         with open(self.filename, 'rb') as f:
             f.seek(self._offset_data, self._offset_whence)
-            self.data = np.fromfile(f, dtype=np.int16,
+            if self._nbytes == 2:
+                dtype= 'int16'
+            elif self._nbytes == 4:
+                dtype= 'int32'
+
+            self.data = np.fromfile(f, dtype=dtype,
                     count=np.prod(self.shape)).reshape(self.shape[::-1])
 
     def __repr__(self):
@@ -168,13 +171,14 @@ if __name__ == '__main__':
         offset =  'from_end_4k'
     elif sum([key in args.filepath for key in ['Transverse_SOP_1D']]):
         offset =  'from_end'
-    print offset
     offset = 'from_end'
+    print offset
 
 
     sp = HamamatsuFile(args.filepath, offset)
     print sp._offset_data
-    print sp.data.shape
+    print sp.data.shape, sp._nbytes
+
     d = sp.data
     cs = plt.imshow(sp.data, vmax=np.percentile(sp.data, 99.9))
 
