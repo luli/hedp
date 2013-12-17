@@ -9,7 +9,7 @@ import re
 import numpy as np
 
 class HamamatsuFile(object):
-    def __init__(self, filename, offset='from_end', nbytes=4):
+    def __init__(self, filename, offset='from_end', dtype='int32', ignore_header=False, shape=None):
         """ A parser to read Hamamatsu streak camera's .img output files.
         This code was partly adapted from an ImageJ plugin.
 
@@ -58,8 +58,19 @@ class HamamatsuFile(object):
                 (type(offset) is not int):
             raise ValueError("Wrong input value for 'offset' input parameter! Acceptable values are 'auto', 'from_end', 'from_end_4k'.")
         self._offset_input = offset
-        self._nbytes = nbytes
-        self._read_header()
+        self._offset_whence = 0
+        self._dtype=dtype
+        if dtype=='int32':
+            self._nbytes = 4
+        elif dtype=='int16':
+            self._nbytes = 2
+        else:
+            raise ValueError("Wrong input value for dtype!")
+        if not ignore_header:
+            self._read_header()
+        else:
+            self._offset_data = offset
+            self.shape = shape
         self._read_data()
 
     def _read_header(self):
@@ -83,7 +94,6 @@ class HamamatsuFile(object):
         self.shape = np.array(self.header['Acquisition']['areGRBScan'].split(',')[-2:]).astype(np.int)
         f.close()
 
-        self._offset_whence = 0
         if type(self._offset_input) is str:
             offset_list = {'auto': self._offset_auto,
                            'from_end': -np.prod(self.shape)*self._nbytes,
@@ -120,12 +130,12 @@ class HamamatsuFile(object):
         """
         with open(self.filename, 'rb') as f:
             f.seek(self._offset_data, self._offset_whence)
-            if self._nbytes == 2:
-                dtype= 'int16'
-            elif self._nbytes == 4:
-                dtype= 'int32'
+            #if self._nbytes == 2:
+            #    dtype= 'int16'
+            #elif self._nbytes == 4:
+            #    dtype= 'int32'
 
-            self.data = np.fromfile(f, dtype=dtype,
+            self.data = np.fromfile(f, dtype=self._dtype,
                     count=np.prod(self.shape)).reshape(self.shape[::-1])
 
     def __repr__(self):
@@ -175,7 +185,7 @@ if __name__ == '__main__':
     print offset
 
 
-    sp = HamamatsuFile(args.filepath, offset)
+    sp = HamamatsuFile(args.filepath, offset, 8)
     print sp._offset_data
     print sp.data.shape, sp._nbytes
 
