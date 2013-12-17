@@ -1,5 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+# Copyright CNRS 2012
+# Roman Yurchak (LULI)
+# This software is governed by the CeCILL-B license under French law and
+# abiding by the rules of distribution of free software.
+
 import numpy as np
 
 from scipy.constants import e, c, m_e, epsilon_0, k
@@ -114,3 +119,21 @@ def spitzer_conductivity(nele, tele, znuc, zbar):
     lnLam = coulomb_logarithm(nele, znuc, tele)
     return 1./(1.03e-2*lnLam*zbar*(tele)**(-3./2))
 
+
+def spitzer_conductivity2(nele, tele, znuc, zbar):
+    """
+    Compute the Spitzer conductivity
+    Parameters:
+    -----------
+     - nele [g/cm³]
+     - tele [eV]
+     - znuc: nuclear charge
+     - zbar: mean ionization
+
+    Returns:
+    --------
+     - Spitzer conductivity [cm².s⁻¹]
+    """
+
+    lnLam = coulomb_logarithm(nele, znuc, tele)
+    return 2e21*tele**(5./2)/(lnLam*nele*(zbar+1))
