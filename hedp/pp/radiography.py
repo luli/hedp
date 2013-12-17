@@ -16,7 +16,7 @@ from hedp.math.abel import abel
 warnings.simplefilter("ignore")
 
 
-def synthetic_radiography_cyl(d, species, nu, spect_ip):
+def synthetic_radiography_cyl(d, species, nu, spect_ip, hdf5_backend='pytables'):
     """
     Postprocess simulation to produce Xray
     
@@ -26,6 +26,7 @@ def synthetic_radiography_cyl(d, species, nu, spect_ip):
       - species [dict]: of species
       - nu [ndarray]: array of frequences [eV]
       - spect_ip [ndarray]: normalized spectra on ip
+      - hdf5_backend: pytables or h5py
 
     Returns:
     --------
@@ -40,7 +41,7 @@ def synthetic_radiography_cyl(d, species, nu, spect_ip):
     dr = np.diff(d['r'])[0,0]
     pd = {key: abel(d['dens']*d[key], dr) for key in species}
     # getting the opacity
-    op = {key: hedp.opacity.henke.cold_opacity(species[key], pd[key], nu) for key in species}
+    op = {key: hedp.opacity.henke.cold_opacity(species[key], pd[key], nu, hdf5_backend) for key in species}
 
 
     op  = hedp.math.add_multiple(*[op[key] for key in species])
