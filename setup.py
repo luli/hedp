@@ -20,9 +20,11 @@ ext_modules=[
     Extension("hedp.lib.integrators",
              ["hedp/lib/integrators.pyx"],),
     Extension("hedp.lib.selectors",
-             ["hedp/lib/selectors.pyx"],)
-             #extra_compile_args=[''],
-             #extra_link_args=['']),
+             ["hedp/lib/selectors.pyx"],),
+    Extension("hedp.lib.multigroup",
+             ["hedp/lib/multigroup.pyx"],
+             extra_compile_args=['-O3'],
+             extra_link_args=['-O3']),
 ]
 
 setup(name='hedp',

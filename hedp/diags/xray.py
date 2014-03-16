@@ -103,7 +103,7 @@ def Kalpha_profile(el, nu, sigma=100):
 
      - profile: [ndarray] Kα line profile as a normalized gaussian
     """
-    nu0 = hedp.matdb(el).spect[u'Kα1']
+    nu0 = hedp.matdb(el).spect[u'Heα1'] #Kα1']
     return 1./(sigma*(2*np.pi)**0.5)* np.exp(-(nu-nu0)**2/(2*sigma**2))
 
 def ff_profile(nu, tele):

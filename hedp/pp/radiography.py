@@ -16,7 +16,7 @@ from hedp.math.abel import abel
 warnings.simplefilter("ignore")
 
 
-def synthetic_radiography_cyl(d, species, nu, spect_ip, hdf5_backend='pytables'):
+def synthetic_radiography_cyl(d, species, nu, spect_ip, hdf5_backend='pickle'):
     """
     Postprocess simulation to produce Xray
     

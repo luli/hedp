@@ -15,7 +15,6 @@ import urllib
 from scipy.interpolate import interp1d
 
 import hedp
-import tables
 from time import time
 import numbers
 #from pyquery import PyQuery as pq
@@ -25,14 +24,14 @@ import numbers
 #    sys.path.append('../')
 #    import matdb
 
-HENKE_DATA_PATH = os.path.join(hedp.MATDB_PATH, 'henke_op.h5')
+HENKE_DATA_PATH = os.path.join(hedp.MATDB_PATH, 'henke_op')
 
-# creating an empty DB file if non existant
-if not os.path.exists(HENKE_DATA_PATH):
-    with tables.openFile(HENKE_DATA_PATH, 'w') as f:
-        pass
+## creating an empty DB file if non existant
+#if not os.path.exists(HENKE_DATA_PATH):
+#    with tables.openFile(HENKE_DATA_PATH, 'w') as f:
+#        pass
 
-def cold_opacity(element, dens=-1, nu=None, hdf5_backend='pytables'):
+def cold_opacity(element, dens=0.1, nu=None, hdf5_backend='pytables'):
     """
     Parameters:
     -----------
@@ -46,28 +45,36 @@ def cold_opacity(element, dens=-1, nu=None, hdf5_backend='pytables'):
     --------
         opacity in cm⁻¹
     """
+    hdf5_backend = 'h5py'
     if hdf5_backend == 'h5py':
         import h5py
-        with h5py.File(HENKE_DATA_PATH, 'r') as f:
+        with h5py.File(HENKE_DATA_PATH+'.h5', 'r') as f:
             if not '/'+element in f:
                 print "Warning: couldn't find cold opacity for {0} ; trying to download...".format(element)
                 f.close()
                 download_full(element)
-                f = h5py.File(HENKE_DATA_PATH, 'r')
+                f = h5py.File(HENKE_DATA_PATH+'.h5', 'r')
             nu0 = f[element]['nu'][:]
             op0 = f[element]['op'][:]
             f.close()
     elif hdf5_backend == 'pytables':
-        with tables.open_file(HENKE_DATA_PATH, 'r') as f:
+        import tables
+        with tables.open_file(HENKE_DATA_PATH+'.h5', 'r') as f:
             if not '/'+element in f:
                 print "Warning: couldn't find cold opacity for {0} ; trying to download...".format(element)
                 f.close()
                 download_full(element)
-                f = tables.openFile(HENKE_DATA_PATH, 'r')
+                f = tables.openFile(HENKE_DATA_PATH+'.h5', 'r')
 
             nu0 = getattr(f.root, element).nu[:]
             op0 = getattr(f.root, element).op[:]
             f.close()
+    elif hdf5_backend == 'pickle':
+        import pickle
+        with open(HENKE_DATA_PATH+'.pickle', 'rb') as handle:
+              mdict = pickle.load(handle)
+              nu0, op0 = mdict[element]
+    #print hdf5_backend
 
     if nu is not None:
         op = interp1d(nu0, op0)(nu)
@@ -91,7 +98,11 @@ def download_full(element):
     op_tot = []
     nu_tot = []
     for nu in [(10,100),(100, 1000), (1000, 9000), (9000, 30000)]:
-        nu_arr, op_arr =  download(db.formula, db.solid_dens, nu=nu)
+        if db.solid_dens:
+            solid_dens = db.solid_dens
+        else:
+            solid_dens = 0.1
+        nu_arr, op_arr =  download(db.formula, solid_dens, nu=nu)
         nu_tot.append(nu_arr)
         op_tot.append(op_arr)
     op = np.concatenate(op_tot)
