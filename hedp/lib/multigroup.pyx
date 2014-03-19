@@ -11,10 +11,17 @@
 
 import numpy as np
 cimport numpy as np
+from os import path
+import ctypes
 
-from scipy.integrate import quadrature, simps, quad, fixed_quad
+from scipy.integrate import quad, quadpack #quadrature, simps, quad, fixed_quad
+from scipy.integrate._quadpack import _qagse
 
 from libc.math cimport exp
+#from cython.parallel import parallel, prange
+#from joblib import Parallel, delayed
+
+cdef int PLANCK_MEAN=1, ROSSELAND_MEAN=2, EPS_MEAN=3
 
 
 cpdef double planck_weight_func_scalar(double u, double offset) nogil:
@@ -52,7 +59,7 @@ cpdef double rosseland_weight_func_scalar(double u, double offset) nogil:
     Returns
     -----------
 
-      u**3 exp(offset-u)
+      u**4 exp(offset-u)
      ------------------    with u = nu/temp
         (1 - exp(-u))²
     """
@@ -81,25 +88,25 @@ def rosseland_weight_int(a, b):
     return res
 
 
-def weight_base(groups, temp, kind='planck', epsrel_max=1e-9):
+cpdef mg_weight_base(groups, temp, mode, epsrel_max=1e-9):
     """
     Produce weights used in Planck and Rosseland computations
 
     Parameters
     ----------
-     - groups [ndarray]: group boundaries [eV]
-     - temp [float]: plasma temperature [eV]
-     - kind [str]: 'planck' or 'rosseland'
+     - groups : ndarray
+               group boundaries [eV]
+     - temp   : float
+               plasma temperature [eV]
+     - mode   : int
+               PLANCK_MEAN or ROSSELAND_MEAN
     """
     cdef int Ng, Nbreak, idx, kind_int
-    cdef int PLANCK=1, ROSSELAND=2
 
-    if kind == 'planck':
+    if mode == PLANCK_MEAN:
         weight_int = planck_weight_int
-        kind_int = PLANCK
-    elif kind == 'rosseland':
+    elif mode == ROSSELAND_MEAN:
         weight_int = rosseland_weight_int
-        kind_int = ROSSELAND
     else:
         raise ValueError
 
@@ -108,20 +115,150 @@ def weight_base(groups, temp, kind='planck', epsrel_max=1e-9):
     cdef double [:] err = np.zeros(Ng)
     cdef double [:] U = np.array(groups/temp)
     Nbreak =  np.argmin(np.abs(U.base-100))
-    for idx in range(Nbreak):
-        if kind_int == PLANCK:
-            B[idx], err[idx] = quad(planck_weight_func_scalar,
-                                    a=U[idx], b=U[idx+1],
-                                    args=(U[idx],), epsabs = 0)
-        elif kind_int == ROSSELAND:
-            B[idx], err[idx] = quad(rosseland_weight_func_scalar,
-                                    a=U[idx], b=U[idx+1],
-                                    args=(U[idx],), epsabs = 0)
+    pars = [0, 0.0, 1e-9, 10]
+    if mode == PLANCK_MEAN:
+        for idx in range(Nbreak):
+            #_qagse(func,a,b,args,full_output,epsabs,epsrel,limit)
+            B[idx], err[idx], _ = _qagse(planck_weight_func_scalar,
+                                    U[idx], U[idx+1],
+                                    (U[idx],), *pars)
+    elif mode == ROSSELAND_MEAN:
+        for idx in range(Nbreak):
+            B[idx], err[idx], _ = _qagse(rosseland_weight_func_scalar,
+                                    U[idx], U[idx+1],
+                                    (U[idx],), *pars)
 
     B.base[Nbreak:Ng] = weight_int(U.base[Nbreak:Ng], U.base[Nbreak+1:Ng+1])
     epsrel = (err.base/B.base).max()
     if epsrel > epsrel_max:
         raise ValueError
     return B.base, epsrel
+
+
+
+cpdef avg_mg_spectra(double [:] nu, double [:] op,\
+                        double [:] weight, long [:] group_idx, int mode):
+    """
+    Average one spectra
+
+    Parameters
+    ----------
+    nu     :  (Np+1,)
+              photon energy array
+    op     :  (Np)  ndarray 
+              opacity data
+    weight :  (Np,)
+              weights for averaging
+    group_idx :(Ng+1,)
+             an array of indices indicating where to put group boundaries in nu
+    mode   : int
+               PLANCK_MEAN, ROSSELAND_MEAN, EPS_MEAN
+    """
+    cdef int Ng
+    Ng = len(group_idx) - 1
+    cdef int i, ig
+    cdef double opg_g, norm_g, norm_i
+    cdef double [:] opg = np.empty(Ng)
+    cdef double begin_group
+    with nogil:
+        for ig in range(Ng):
+            opg_g = 0.0
+            norm_g = 0.0
+            begin_group = nu[group_idx[ig]]
+            if mode == PLANCK_MEAN:
+                for i in range(group_idx[ig], group_idx[ig+1]):
+                    norm_i = weight[i]*exp(begin_group -nu[i])
+                    opg_g +=  op[i]*norm_i
+                    norm_g += norm_i
+                opg[ig] = opg_g/norm_g
+            elif mode == ROSSELAND_MEAN:
+                for i in range(group_idx[ig], group_idx[ig+1]):
+                    norm_i = weight[i]*exp(begin_group -nu[i])
+                    opg_g +=  norm_i/op[i]
+                    norm_g += norm_i
+                opg[ig] = norm_g/opg_g
+            elif mode == EPS_MEAN:
+                for i in range(group_idx[ig], group_idx[ig+1]):
+                    opg_g +=  op[i]
+                    norm_g += 1.0
+                opg[ig] = opg_g/norm_g
+    return opg
+
+cpdef avg_subgroups(double [:] nu, double [:] weight, long [:] group_idx):
+    """ Compute weights for subgroups """
+    cdef int Ng
+    Ng = len(group_idx) - 1
+    cdef int i, ig
+    cdef double norm_i
+    cdef double [:] norm_g = np.empty(Ng)
+    cdef double begin_group
+    with nogil:
+        for ig in range(Ng):
+            norm_i = 0.0
+            begin_group = nu[group_idx[ig]]
+            for i in range(group_idx[ig], group_idx[ig+1]):
+                norm_i += weight[i]*exp(begin_group -nu[i])
+            norm_g[ig] = norm_i
+    return norm_g
+
+
+
+def avg_mg_table(table, group_idx, emp=False, eps=True, debug=True):
+    """
+    Average an opacity table for one 
+
+    Parameters
+    ----------
+    table  :  (Nr,Nt,Np)  ndarray 
+              dict or a pytable node shoule have following attributes: 'opp_mg', 'opr_mg', 'emp_mg', 'groups'
+    group_idx :(Ng+1,)
+             an array of indices indicating where to put group boundaries in nu
+    """
+     
+    cdef int i,j,k, mode
+    cdef int Nr, Nt, Np
+    nu = table.groups[:]
+    rho = table.dens[:]
+    temp = table.temp[:]
+    Nr, Nt, Np = len(rho), len(temp), len(nu)-1
+    Ng = len(group_idx) - 1
+
+    opp_mg = np.empty((Nr, Nt, Ng))
+    opr_mg = np.empty((Nr, Nt, Ng))
+    if debug:
+        Bg_p = np.empty((Nt, Ng))
+        Bg_r = np.empty((Nt, Ng))
+    if emp:
+        emp_mg = np.empty((Nr, Nt, Ng))
+    if eps:
+        eps_mg = np.empty((Nr, Nr, Ng))
+
+    for j in range(Nt):
+        Bnu_p, Bnu_p_err = mg_weight_base(nu, temp[j], PLANCK_MEAN, epsrel_max=1e-9)
+        Bnu_r, Bnu_p_err = mg_weight_base(nu, temp[j], ROSSELAND_MEAN, epsrel_max=1e-9)
+        if debug:
+            Bg_p[j,:] = avg_subgroups(nu, Bnu_p, group_idx)
+            Bg_r[j,:] = avg_subgroups(nu, Bnu_r, group_idx)
+
+        for i in range(Nr):
+            opp_mg[i,j,:] = avg_mg_spectra(nu, table.opp_mg[i,j], Bnu_p, group_idx, PLANCK_MEAN)
+            opr_mg[i,j,:] = avg_mg_spectra(nu, table.opr_mg[i,j], Bnu_r, group_idx, ROSSELAND_MEAN)
+
+
+
+    out = {'opp_mg': opp_mg, 'opr_mg': opr_mg}
+    if debug:
+        out['Bg_p'] = Bg_p
+        out['Bg_r'] = Bg_r
+
+    return out
+
+
+
+
+
+
+
+
 
 
