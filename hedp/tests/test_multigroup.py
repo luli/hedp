@@ -4,9 +4,14 @@ from hedp.matdb import Storage
 from hedp.lib.multigroup import avg_mg_table
 import numpy as np
 from numpy.testing import assert_allclose
+from opacplot2.opg_hdf5  import OpgHdf5
+from hedp.opacity.AGS import project_on_grid
 
 
-def setup():
+def test_multigroup1():
+    """Use the fact that given u=nu/temp 
+        if κ = u⁻³,   κ_p^g = [ln(1 - e^(-u)]_g^{g+1}
+    """
     Nr, Nt, Np, Ng = 30, 80, 1000, 100
 
     nu = np.logspace(-1, np.log10(50e3), Np+1)
@@ -19,13 +24,6 @@ def setup():
                 opp_mg=np.random.rand(Nr, Nt, Np),
                 opr_mg=np.random.rand(Nr, Nt, Np),
                 emp_mg=np.random.rand(Nr, Nt, Np))
-    global temp, dens, groups_idx, tab_init, Nr, Nt, Np, Ng , groups_new
-
-def test_multigroup1():
-    """Use the fact that given u=nu/temp 
-        if κ = u⁻³,   κ_p^g = [ln(1 - e^(-u)]_g^{g+1}
-    """
-    import matplotlib.pyplot as plt
     tab = Storage(tab_init.copy())
     U = np.empty((Nr, Nt, Np))
     Ug = np.empty((Nr, Nt, Ng+1))
@@ -42,24 +40,26 @@ def test_multigroup1():
     tab['opp_new'] = Ug[:,:,:-1]**(-3)
     tab['opr_new'] = Ug[:,:,:-1]**(-4)
     tab['emp_new'] = Ug[:,:,:-1]**(-3)
-    op_mg = avg_mg_table(tab, groups_idx, eps=False, emp=False,debug=True)
+    op_mg = avg_mg_table(tab, groups_idx, emp=True,debug=True)
     Bg_p, Bg_r = op_mg['Bg_p'], op_mg['Bg_r']
     yield  assert_allclose, np.isnan(Bg_p).any(), False, 1e-07, 0, 'Found nan in Planck weights'
     yield  assert_allclose, np.isnan(Bg_p).any(), False, 1e-07, 0, 'Found nan in Rosseland  weights'
     #
     # analytical expression doesn't work so well cause exp overflows.
     # checked on a plot that it works.
-    kpg_exp = np.log((1-np.exp(-Ug[:,:,1:]))/(1-np.exp(-Ug[:,:,:-1])))/op_mg['Bg_p']
-    krg_exp =  (1./(1-np.exp(-Ug[:,:,:-1])) - 1./(1-np.exp(-Ug[:,:,1:])))**(-1)
+    # kpg_exp = np.log((1-np.exp(-Ug[:,:,1:]))/(1-np.exp(-Ug[:,:,:-1])))/op_mg['Bg_p']
+    # krg_exp =  (1./(1-np.exp(-Ug[:,:,:-1])) - 1./(1-np.exp(-Ug[:,:,1:])))**(-1)
     for key in ['opp', 'opr']:
         yield assert_allclose, tab[key+'_new'], op_mg[key+'_mg'], 0.4, 0, 'Fast checking failed for '+key
-    #ax = plt.subplot(111)
-    #i = 1
-    #j = 70
-    #ax.loglog(tab.groups[:-1], tab['opr_mg'][i,j], 'r-')
-    #ax.step(groups_new[:-1], krg_exp[i,j], where='post')
-    #ax.step(groups_new[:-1], op_mg['opr_mg'][i,j], where='post')
-    #err = kpg_exp/op_mg['opp_mg']
-    #print err[Ug[:,:,:-1]<10].mean()
 
-    #plt.savefig('/tmp/test.png', bbox_inches='tight')
+def test_multigroup2():
+    """Check that implemented averaging gives the same results as SNOP"""
+    op0 = OpgHdf5.open_file('./data/Al_snp_10kgr.h5')
+    op1 = OpgHdf5.open_file('./data/Al_snp_40gr.h5')
+    group_idx, groups_new =  project_on_grid(op1['groups'][:], op0['groups'][:])
+    res = avg_mg_table(op0, group_idx, emp=True, debug=True, verbose=False)
+    for key, rtol in {'opp_mg':1e-3, 'opr_mg':1e-3, 'emp_mg':1.5}.iteritems():
+        yield assert_allclose, op1[key][:], res[key], rtol, 0, 'Not the same '+key
+
+
+
