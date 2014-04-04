@@ -19,7 +19,7 @@ from scipy.integrate import quad, quadpack #quadrature, simps, quad, fixed_quad
 from scipy.integrate._quadpack import _qagse
 
 from libc.math cimport exp
-#from cython.parallel import parallel, prange
+from cython.parallel import parallel, prange
 #from joblib import Parallel, delayed
 
 cdef int PLANCK_MEAN=1, ROSSELAND_MEAN=2, PLANCK_EMISS_MEAN=3
@@ -154,34 +154,27 @@ cpdef avg_mg_spectra(double [:] U, double [:] op,\
     """
     cdef int Ng
     Ng = len(group_idx) - 1
-    cdef int i, ig
-    cdef double opg_g, norm_g, norm_i
     cdef double [:] opg = np.empty(Ng)
+    cdef int ig, i
+    cdef double opg_g, norm_g, norm_i, res
     cdef double begin_group
-    with nogil:
-        for ig in range(Ng):
-            opg_g = 0.0
-            norm_g = 0.0
-            begin_group = U[group_idx[ig]]
-            if mode == PLANCK_MEAN:
-                for i in range(group_idx[ig], group_idx[ig+1]):
-                    norm_i = weight[i]*exp(begin_group -U[i])
-                    opg_g +=  op[i]*norm_i
-                    norm_g += norm_i
-                opg[ig] = opg_g/norm_g
-            elif mode == ROSSELAND_MEAN:
-                for i in range(group_idx[ig], group_idx[ig+1]):
-                    norm_i = weight[i]*exp(begin_group -U[i])
-                    opg_g +=  norm_i/op[i]
-                    norm_g += norm_i
-                opg[ig] = norm_g/opg_g
-            #elif mode == PLANCK_EMISS_MEAN:
-            #    for i in range(group_idx[ig], group_idx[ig+1]):
-            #        norm_i = weight[i]*exp(begin_group -nu[i])
-            #        opg_g  +=  op[i]
-            #        norm_g +=  norm_i
-            #    opg[ig] = opg_g/norm_g
-    return opg
+    for ig in range(Ng):#, schedule='static', nogil=True):
+        opg_g = 0.0
+        norm_g = 0.0
+        begin_group = U[group_idx[ig]]
+        if mode == PLANCK_MEAN:
+            for i in range(group_idx[ig], group_idx[ig+1]):
+                norm_i = weight[i]*exp(begin_group -U[i])
+                opg_g +=  op[i]*norm_i
+                norm_g += norm_i
+            opg[ig] = opg_g/norm_g
+        elif mode == ROSSELAND_MEAN:
+            for i in range(group_idx[ig], group_idx[ig+1]):
+                norm_i = weight[i]*exp(begin_group -U[i])
+                opg_g +=  norm_i/op[i]
+                norm_g += norm_i
+            opg[ig] = norm_g/opg_g
+    return opg.base
 
 cpdef avg_subgroups(double [:] U, double [:] weight, long [:] group_idx):
     """ Compute weights for subgroups """

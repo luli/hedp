@@ -23,8 +23,8 @@ ext_modules=[
              ["hedp/lib/selectors.pyx"],),
     Extension("hedp.lib.multigroup",
              ["hedp/lib/multigroup.pyx"],
-             extra_compile_args=['-O3'],
-             extra_link_args=['-O3']),
+             extra_compile_args=['-O3', '-fopenmp'],
+             extra_link_args=['-O3', '-fopenmp']),
 ]
 
 setup(name='hedp',

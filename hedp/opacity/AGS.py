@@ -252,7 +252,9 @@ class TableProjGrid(BaseProjGrid):
         self.groups = groups_ref = groups_list[0]
         if len(groups_list)>1:
             for gidx, group in enumerate(groups_list[1:]):
-                if not np.array_equal(groups_ref, group):
+                if not np.allclose(groups_ref, group, rtol=5e-4):
+                    print groups_ref
+                    print group
                     raise ValueError("Opactity tables {0} and {1} don't have the same photon grid!".format(tables.keys()[0], tables.keys()[gidx+1]))
         if len(groups_lim)!=2:
             raise ValueError
