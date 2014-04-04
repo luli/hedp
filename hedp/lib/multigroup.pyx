@@ -158,21 +158,21 @@ cpdef avg_mg_spectra(double [:] U, double [:] op,\
     cdef int ig, i
     cdef double opg_g, norm_g, norm_i, res
     cdef double begin_group
-    for ig in range(Ng):#, schedule='static', nogil=True):
+    for ig in prange(Ng, schedule='static', nogil=True):
         opg_g = 0.0
         norm_g = 0.0
         begin_group = U[group_idx[ig]]
         if mode == PLANCK_MEAN:
             for i in range(group_idx[ig], group_idx[ig+1]):
                 norm_i = weight[i]*exp(begin_group -U[i])
-                opg_g +=  op[i]*norm_i
-                norm_g += norm_i
+                opg_g = opg_g + op[i]*norm_i
+                norm_g = norm_g +norm_i
             opg[ig] = opg_g/norm_g
         elif mode == ROSSELAND_MEAN:
             for i in range(group_idx[ig], group_idx[ig+1]):
                 norm_i = weight[i]*exp(begin_group -U[i])
-                opg_g +=  norm_i/op[i]
-                norm_g += norm_i
+                opg_g = opg_g + norm_i/op[i]
+                norm_g = norm_g + norm_i
             opg[ig] = norm_g/opg_g
     return opg.base
 
