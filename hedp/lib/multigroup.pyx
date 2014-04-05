@@ -19,8 +19,23 @@ from scipy.integrate import quad, quadpack #quadrature, simps, quad, fixed_quad
 from scipy.integrate._quadpack import _qagse
 
 from libc.math cimport exp
+#from libc.stdlib import size_t
 from cython.parallel import parallel, prange
 #from joblib import Parallel, delayed
+
+cdef extern from "gsl/gsl_math.h":
+    struct gsl_function:
+        double (* function) (double x, void * params) nogil
+        void * params
+
+
+cdef extern from "gsl/gsl_integration.h":
+    int gsl_integration_qng (const gsl_function * f,
+                         double a, double b,
+                         double epsabs, double epsrel,
+                         double *result, double *abserr,
+                         size_t * neval)
+
 
 cdef int PLANCK_MEAN=1, ROSSELAND_MEAN=2, PLANCK_EMISS_MEAN=3
 
@@ -89,7 +104,7 @@ def rosseland_weight_int(a, b):
     return res
 
 
-cpdef mg_weight_base(double [:] U, mode, epsrel_max=1e-9):
+cpdef mg_weight_base(double [:] U, int mode, float epsrel_max, int Ng, double [:] B):
     """
     Produce weights used in Planck and Rosseland computations
 
@@ -100,7 +115,7 @@ cpdef mg_weight_base(double [:] U, mode, epsrel_max=1e-9):
      - mode   : int
                PLANCK_MEAN or ROSSELAND_MEAN
     """
-    cdef int Ng, Nbreak, idx, kind_int
+    cdef int Nbreak, idx, kind_int
 
     if mode == PLANCK_MEAN:
         weight_int = planck_weight_int
@@ -110,32 +125,27 @@ cpdef mg_weight_base(double [:] U, mode, epsrel_max=1e-9):
         raise ValueError
 
     Ng = len(U)-1
-    cdef double [:] B=np.zeros(Ng)
-    cdef double [:] err = np.zeros(Ng)
     Nbreak =  np.argmin(np.abs(U.base-10000))
     pars = [0, 0.0, 1e-9, 10]
     if mode == PLANCK_MEAN:
         for idx in range(Nbreak):
             #_qagse(func,a,b,args,full_output,epsabs,epsrel,limit)
-            B[idx], err[idx], _ = _qagse(planck_weight_func_scalar,
+            B[idx], _, _ = _qagse(planck_weight_func_scalar,
                                     U[idx], U[idx+1],
                                     (U[idx],), *pars)
     elif mode == ROSSELAND_MEAN:
         for idx in range(Nbreak):
-            B[idx], err[idx], _ = _qagse(rosseland_weight_func_scalar,
+            B[idx], _, _ = _qagse(rosseland_weight_func_scalar,
                                     U[idx], U[idx+1],
                                     (U[idx],), *pars)
 
     B.base[Nbreak:Ng] = weight_int(U.base[Nbreak:Ng], U.base[Nbreak+1:Ng+1])
-    epsrel = (err.base/B.base).max()
-    if epsrel > epsrel_max:
-        raise ValueError
-    return B.base, epsrel
+    return B.base, 0.0
 
 
 
-cpdef avg_mg_spectra(double [:] U, double [:] op,\
-                        double [:] weight, long [:] group_idx, int mode):
+cdef void avg_mg_spectra(double [:] U, double [:] op,\
+            double [:] weight, long [:] group_idx, int mode, int Ng, double [:] opg) nogil:
     """
     Average one spectra
 
@@ -152,37 +162,32 @@ cpdef avg_mg_spectra(double [:] U, double [:] op,\
     mode   : int
                PLANCK_MEAN, ROSSELAND_MEAN, EPS_MEAN
     """
-    cdef int Ng
-    Ng = len(group_idx) - 1
-    cdef double [:] opg = np.empty(Ng)
     cdef int ig, i
     cdef double opg_g, norm_g, norm_i, res
     cdef double begin_group
-    for ig in prange(Ng, schedule='static', nogil=True):
+    for ig in range(Ng):
         opg_g = 0.0
         norm_g = 0.0
         begin_group = U[group_idx[ig]]
         if mode == PLANCK_MEAN:
             for i in range(group_idx[ig], group_idx[ig+1]):
                 norm_i = weight[i]*exp(begin_group -U[i])
-                opg_g = opg_g + op[i]*norm_i
-                norm_g = norm_g +norm_i
+                opg_g += op[i]*norm_i
+                norm_g += norm_i
             opg[ig] = opg_g/norm_g
         elif mode == ROSSELAND_MEAN:
             for i in range(group_idx[ig], group_idx[ig+1]):
                 norm_i = weight[i]*exp(begin_group -U[i])
-                opg_g = opg_g + norm_i/op[i]
-                norm_g = norm_g + norm_i
+                opg_g += norm_i/op[i]
+                norm_g += norm_i
             opg[ig] = norm_g/opg_g
-    return opg.base
+    return
 
-cpdef avg_subgroups(double [:] U, double [:] weight, long [:] group_idx):
+cdef void avg_subgroups(double [:] U, double [:] weight, long [:] group_idx,
+        int Ng, double [:] norm_g) nogil:
     """ Compute weights for subgroups """
-    cdef int Ng
-    Ng = len(group_idx) - 1
     cdef int i, ig
     cdef double norm_i
-    cdef double [:] norm_g = np.empty(Ng)
     cdef double begin_group
     with nogil:
         for ig in range(Ng):
@@ -191,11 +196,11 @@ cpdef avg_subgroups(double [:] U, double [:] weight, long [:] group_idx):
             for i in range(group_idx[ig], group_idx[ig+1]):
                 norm_i += weight[i]*exp(begin_group -U[i])
             norm_g[ig] = norm_i
-    return norm_g
+    return
 
 
 
-def avg_mg_table(table, group_idx, emp=False, debug=False, verbose=False):
+cpdef avg_mg_table(table, long [:] group_idx, list fields, verbose=False):
     """
     Average an opacity table for one 
 
@@ -205,59 +210,107 @@ def avg_mg_table(table, group_idx, emp=False, debug=False, verbose=False):
               dict or a pytable node shoule have following attributes: 'opp_mg', 'opr_mg', 'emp_mg', 'groups'
     group_idx :(Ng+1,)
              an array of indices indicating where to put group boundaries in nu
+    fields    : list
+             a list for output variables that must be a subset of 
+             ['opp_mg', 'opr_mg', 'eps_mg', 'Bnu_p', 'Bnu_r', 'Bg_p', 'Bg_r']
     """
      
+    cdef str key
+    cdef dict out = {}
     cdef int i,j,k, mode
+    cdef int verbose_flag=0
+    cdef int OPP_MG_ID=0, OPR_MG_ID=1, EMP_MG_ID=2, BNU_P_ID=3, BNU_R_ID=4, BG_P_ID=5, BG_R_ID=6
+    cdef list out_opt = ['opp_mg', 'opr_mg', 'eps_mg', 'Bnu_p', 'Bnu_r', 'Bg_p', 'Bg_r']
+    cdef int [:] out_flag = np.zeros(7, dtype='int32')
     cdef int Nr, Nt, Np
-    nu = table['groups'][:]
-    U = np.empty(nu.shape)
-    rho = table['dens'][:]
-    temp = table['temp'][:]
-    Nr, Nt, Np = len(rho), len(temp), len(nu)-1
-    Ng = len(group_idx) - 1
+    Nr, Nt, Np = table['opp_mg'].shape
+    Np -= 1
+    cdef int Ng = len(group_idx) - 1
+    cdef double [:] nu = table['groups'][:]
+    cdef double [:] U = np.empty(Np)
+    cdef double [:] rho = table['dens'][:]
+    cdef double [:] temp = table['temp'][:]
+    cdef double [:,:,:] opp_mg, opr_mg, emp_mg
+    cdef double [:,:] opp_mg_t, opr_mg_t, emp_mg_t
+    cdef double [:] Bnu_p_t = np.empty(Np)
+    cdef double [:] Bnu_r_t = np.empty(Np)
+    cdef double [:, :] Bg_p, Bg_r
 
-    opp_mg = np.empty((Nr, Nt, Ng))
-    opr_mg = np.empty((Nr, Nt, Ng))
+    # setting an flag array with values to be computed
+    for i, key in enumerate(fields):
+        k = 0
+        for j in range(len(out_opt)):
+            if key == out_opt[j]:
+                out_flag[j] = 1
+                k = 1
+        if k==0:
+            raise ValueError('Key {0} not in valid lists of keys!'.format(key))
 
-    if debug:
-        Bg_p = np.empty((Nt, Ng))
-        Bg_r = np.empty((Nt, Ng))
-        Bnu_p_all = []
-        Bnu_r_all = []
-    if emp:
+    # Allocate all requested arrays
+    if out_flag[OPP_MG_ID]:
+        opp_mg = np.empty((Nr, Nt, Ng))
+        opp_mg_t = np.empty((Nr, Ng))
+    if out_flag[OPR_MG_ID]:
+        opr_mg = np.empty((Nr, Nt, Ng))
+        opr_mg_t = np.empty((Nr, Ng))
+    if out_flag[EMP_MG_ID]:
         emp_mg = np.empty((Nr, Nt, Ng))
+        emp_mg_t = np.empty((Nr, Ng))
+    if out_flag[BG_P_ID]:
+        Bg_p = np.empty((Nt, Ng))
+    if out_flag[BG_R_ID]:
+        Bg_r = np.empty((Nt, Ng))
+    if out_flag[BNU_P_ID]:
+        Bnu_p = np.empty((Nt, Np))
+    if out_flag[BNU_R_ID]:
+        Bnu_r = np.empty((Nt, Np))
+
 
     for j in range(Nt):
-        U[:] = nu/temp[j]
-        Bnu_p, Bnu_p_err = mg_weight_base(U, PLANCK_MEAN, epsrel_max=1e-9)
-        Bnu_r, Bnu_p_err = mg_weight_base(U, ROSSELAND_MEAN, epsrel_max=1e-9)
-        if debug:
-            Bg_p[j,:] = avg_subgroups(nu, Bnu_p, group_idx)
-            Bg_r[j,:] = avg_subgroups(nu, Bnu_r, group_idx)
-            Bnu_p_all.append(Bnu_p)
-            Bnu_r_all.append(Bnu_p)
-        if verbose:
-            print '{0}/{1}: {2:.1e} eV'.format(j, Nt, temp[j])
+        for i in range(Np):
+            U[i] = nu[i]/temp[j]
+        # computing bases
+        mg_weight_base(U, PLANCK_MEAN, 1e-9, Ng, Bnu_p_t)
+        mg_weight_base(U, ROSSELAND_MEAN, 1e-9, Ng,  Bnu_r_t)
 
-        for i in range(Nr):
-            opp_mg[i,j,:] = avg_mg_spectra(U, table['opp_mg'][i,j], Bnu_p, group_idx, PLANCK_MEAN)
-            opr_mg[i,j,:] = avg_mg_spectra(U, table['opr_mg'][i,j], Bnu_r, group_idx, ROSSELAND_MEAN)
+        if out_flag[BG_P_ID]: avg_subgroups(nu, Bnu_p_t, group_idx, Ng, Bg_p[j,:])
+        if out_flag[BG_R_ID]: avg_subgroups(nu, Bnu_r_t, group_idx, Ng, Bg_r[j,:])
+        if out_flag[BNU_P_ID]: Bnu_p[j] = Bnu_p_t
+        if out_flag[BNU_R_ID]: Bnu_r[j] = Bnu_p_t
+        #if verbose:
+        #    print '{0}/{1}: {2:.1e} eV'.format(j, Nt, temp[j])
 
-        if emp:
-            for i in range(Nr):
-                emp_mg[i,j,:] = avg_mg_spectra(U, table['emp_mg'][i,j], Bnu_p, group_idx, PLANCK_MEAN)
+        if out_flag[OPP_MG_ID]:
+            opp_mg_t = table['opp_mg'][:,j,:]
+            with nogil:
+                for i in range(Nr):
+                    avg_mg_spectra(U, opp_mg_t[i], Bnu_p_t, group_idx,
+                            PLANCK_MEAN, Ng, opp_mg[i,j,:])
+
+        if out_flag[OPR_MG_ID]:
+            opr_mg_t = table['opr_mg'][:,j,:]
+            with nogil:
+                for i in range(Nr):
+                    avg_mg_spectra(U, opr_mg_t[i], Bnu_r_t, group_idx,
+                            ROSSELAND_MEAN, Ng, opr_mg[i,j,:])
+        if out_flag[EMP_MG_ID]:
+            emp_mg_t = table['emp_mg'][:,j,:]
+            with nogil:
+                for i in range(Nr):
+                    avg_mg_spectra(U, emp_mg_t[i], Bnu_p_t, group_idx,
+                            PLANCK_MEAN, Ng, emp_mg[i,j,:])
 
 
-    out = {'opp_mg': opp_mg, 'opr_mg': opr_mg}
-    if emp:
-        out['emp_mg'] =  emp_mg
-    if debug:
-        out['Bg_p'] = Bg_p
-        out['Bg_r'] = Bg_r
-        out['Bnu_p'] = np.array(Bnu_p_all)
-        out['Bnu_r'] = np.array(Bnu_r_all)
+    if out_flag[OPP_MG_ID]: out['opp_mg'] = opp_mg.base
+    if out_flag[OPR_MG_ID]: out['opr_mg'] = opr_mg.base
+    if out_flag[EMP_MG_ID]: out['emp_mg'] = emp_mg.base
 
-    return out
+    if out_flag[BG_P_ID]: out['Bg_p'] = Bg_p.base
+    if out_flag[BG_R_ID]: out['Bg_r'] = Bg_r.base
+
+    if out_flag[BNU_P_ID]: out['Bnu_p'] = Bnu_p.base
+    if out_flag[BNU_R_ID]: out['Bnu_r'] = Bnu_r.base
+    return
 
 
 
