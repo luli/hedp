@@ -26,9 +26,10 @@ ext_modules=[
              ["hedp/lib/selectors.pyx"],),
     Extension("hedp.lib.multigroup",
              ["hedp/lib/multigroup.pyx"],
-             extra_compile_args=['-O3', '-fopenmp'],
-             extra_link_args=['-O3', '-fopenmp'],
-             libraries=['gsl'],
+             extra_compile_args=['-O3', '-ggdb', '-fopenmp'],
+             extra_link_args=['-O3','-ggdb', '-fopenmp'],
+             libraries=['gsl', 'gslcblas'],
+             library_dirs=[LIB_GSL],
              ),
 ]
 
@@ -41,7 +42,6 @@ setup(name='hedp',
       cmdclass = {'build_ext': build_ext},
       ext_modules = ext_modules,
       include_dirs=[np.get_include(), INCLUDE_GSL],
-      library_dirs=[LIB_GSL],
       package_data={'hedp': ['hedp/tests/data/*']}
      )
 

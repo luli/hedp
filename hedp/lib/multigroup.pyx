@@ -24,9 +24,11 @@ from cython.parallel import parallel, prange
 #from joblib import Parallel, delayed
 
 cdef extern from "gsl/gsl_math.h":
-    struct gsl_function:
+    struct gsl_function_struct:
         double (* function) (double x, void * params) nogil
         void * params
+
+ctypedef gsl_function_struct gsl_function
 
 
 cdef extern from "gsl/gsl_integration.h":
@@ -34,13 +36,13 @@ cdef extern from "gsl/gsl_integration.h":
                          double a, double b,
                          double epsabs, double epsrel,
                          double *result, double *abserr,
-                         size_t * neval)
+                         size_t * neval) nogil
 
 
 cdef int PLANCK_MEAN=1, ROSSELAND_MEAN=2, PLANCK_EMISS_MEAN=3
 
 
-cpdef double planck_weight_func_scalar(double u, double offset) nogil:
+cdef double planck_weight_func_scalar(double u, void * offset) nogil:
     """
     Planck weighting function
 
@@ -58,11 +60,11 @@ cpdef double planck_weight_func_scalar(double u, double offset) nogil:
         exp(u) - 1
     """
 
-    return u**3*exp(-u+offset)/(1 - exp(-u))
+    return u**3*exp(-u+(<double *> offset)[0])/(1 - exp(-u))
 
 
 
-cpdef double rosseland_weight_func_scalar(double u, double offset) nogil:
+cdef double rosseland_weight_func_scalar(double u, void * offset) nogil:
     """
     Rosseland weighting function
 
@@ -79,32 +81,9 @@ cpdef double rosseland_weight_func_scalar(double u, double offset) nogil:
      ------------------    with u = nu/temp
         (1 - exp(-u))²
     """
-    return u**4*exp(-u+offset)/(1-exp(-u))**2
+    return u**4*exp(-u+(<double *> offset)[0])/(1-exp(-u))**2
 
-def planck_weight_int(a, b):
-    """
-    Integrate Planck weighting function in the approximation u>>1.
-    The result is multiplied by exp(+a) for normalization
-    """
-    res = 0
-    for idx, bd in enumerate([a,b]):
-        sign = np.sign((idx - 0.5))
-        res += -sign*(bd**3 + 3*bd**2 + 6*bd + 6)*np.exp(a-bd)
-    return res
-
-def rosseland_weight_int(a, b):
-    """
-    Integrate Rosseland weighting function in the approximation u>>1.
-    The result is multiplied by exp(+a) for normalization
-    """
-    res = 0
-    for idx, bd in enumerate([a,b]):
-        sign = np.sign((idx - 0.5))
-        res += -sign*(bd**4 + 4*bd**3 + 12*bd**2 +24*bd + 24)*np.exp(a-bd)
-    return res
-
-
-cpdef mg_weight_base(double [:] U, int mode, float epsrel_max, int Ng, double [:] B):
+cdef int mg_weight_base(double [:] U, int mode, double epsrel, int Ng, double [:] B) nogil:
     """
     Produce weights used in Planck and Rosseland computations
 
@@ -114,33 +93,32 @@ cpdef mg_weight_base(double [:] U, int mode, float epsrel_max, int Ng, double [:
                group boundaries [eV] / plasma temperature [eV]
      - mode   : int
                PLANCK_MEAN or ROSSELAND_MEAN
+     - epsrel:   : float 
+               Input: requested relative error
+               # Output: achieved maximum absolute error
     """
-    cdef int Nbreak, idx, kind_int
+    cdef int Nbreak, i, kind_int, status
+    cdef double epsabs=0.0, total_abserr=0.0, abserr=0.0
+    cdef gsl_function weight_int
+    cdef size_t neval
+
 
     if mode == PLANCK_MEAN:
-        weight_int = planck_weight_int
+        weight_int.function = &planck_weight_func_scalar
     elif mode == ROSSELAND_MEAN:
-        weight_int = rosseland_weight_int
+        weight_int.function = &rosseland_weight_func_scalar
     else:
-        raise ValueError
+        with gil:
+            raise ValueError
+    for i in range(Ng):
+        weight_int.params = <void*> &U[i]
+        status = gsl_integration_qng(&weight_int, U[i], U[i+1],
+                             epsabs, epsrel, &B[i], &abserr, &neval)
+        total_abserr = max(abserr, total_abserr)
 
-    Ng = len(U)-1
-    Nbreak =  np.argmin(np.abs(U.base-10000))
-    pars = [0, 0.0, 1e-9, 10]
-    if mode == PLANCK_MEAN:
-        for idx in range(Nbreak):
-            #_qagse(func,a,b,args,full_output,epsabs,epsrel,limit)
-            B[idx], _, _ = _qagse(planck_weight_func_scalar,
-                                    U[idx], U[idx+1],
-                                    (U[idx],), *pars)
-    elif mode == ROSSELAND_MEAN:
-        for idx in range(Nbreak):
-            B[idx], _, _ = _qagse(rosseland_weight_func_scalar,
-                                    U[idx], U[idx+1],
-                                    (U[idx],), *pars)
+    #eps[0] = total_abserr
 
-    B.base[Nbreak:Ng] = weight_int(U.base[Nbreak:Ng], U.base[Nbreak+1:Ng+1])
-    return B.base, 0.0
+    return 0
 
 
 
@@ -200,7 +178,7 @@ cdef void avg_subgroups(double [:] U, double [:] weight, long [:] group_idx,
 
 
 
-cpdef avg_mg_table(table, long [:] group_idx, list fields, verbose=False):
+cpdef dict avg_mg_table(table, long [:] group_idx, list fields, verbose=False):
     """
     Average an opacity table for one 
 
@@ -220,7 +198,7 @@ cpdef avg_mg_table(table, long [:] group_idx, list fields, verbose=False):
     cdef int i,j,k, mode
     cdef int verbose_flag=0
     cdef int OPP_MG_ID=0, OPR_MG_ID=1, EMP_MG_ID=2, BNU_P_ID=3, BNU_R_ID=4, BG_P_ID=5, BG_R_ID=6
-    cdef list out_opt = ['opp_mg', 'opr_mg', 'eps_mg', 'Bnu_p', 'Bnu_r', 'Bg_p', 'Bg_r']
+    cdef list out_opt = ['opp_mg', 'opr_mg', 'emp_mg', 'Bnu_p', 'Bnu_r', 'Bg_p', 'Bg_r']
     cdef int [:] out_flag = np.zeros(7, dtype='int32')
     cdef int Nr, Nt, Np
     Nr, Nt, Np = table['opp_mg'].shape
@@ -235,6 +213,7 @@ cpdef avg_mg_table(table, long [:] group_idx, list fields, verbose=False):
     cdef double [:] Bnu_p_t = np.empty(Np)
     cdef double [:] Bnu_r_t = np.empty(Np)
     cdef double [:, :] Bg_p, Bg_r
+    cdef double epsrel = 1e-9
 
     # setting an flag array with values to be computed
     for i, key in enumerate(fields):
@@ -270,8 +249,9 @@ cpdef avg_mg_table(table, long [:] group_idx, list fields, verbose=False):
         for i in range(Np):
             U[i] = nu[i]/temp[j]
         # computing bases
-        mg_weight_base(U, PLANCK_MEAN, 1e-9, Ng, Bnu_p_t)
-        mg_weight_base(U, ROSSELAND_MEAN, 1e-9, Ng,  Bnu_r_t)
+
+        mg_weight_base(U, PLANCK_MEAN, epsrel, Ng, Bnu_p_t)
+        mg_weight_base(U, ROSSELAND_MEAN, epsrel, Ng,  Bnu_r_t)
 
         if out_flag[BG_P_ID]: avg_subgroups(nu, Bnu_p_t, group_idx, Ng, Bg_p[j,:])
         if out_flag[BG_R_ID]: avg_subgroups(nu, Bnu_r_t, group_idx, Ng, Bg_r[j,:])
@@ -301,16 +281,16 @@ cpdef avg_mg_table(table, long [:] group_idx, list fields, verbose=False):
                             PLANCK_MEAN, Ng, emp_mg[i,j,:])
 
 
-    if out_flag[OPP_MG_ID]: out['opp_mg'] = opp_mg.base
-    if out_flag[OPR_MG_ID]: out['opr_mg'] = opr_mg.base
-    if out_flag[EMP_MG_ID]: out['emp_mg'] = emp_mg.base
+    if out_flag[OPP_MG_ID]: out['opp_mg'] = opp_mg
+    if out_flag[OPR_MG_ID]: out['opr_mg'] = opr_mg
+    if out_flag[EMP_MG_ID]: out['emp_mg'] = emp_mg
 
-    if out_flag[BG_P_ID]: out['Bg_p'] = Bg_p.base
-    if out_flag[BG_R_ID]: out['Bg_r'] = Bg_r.base
+    if out_flag[BG_P_ID]: out['Bg_p'] = Bg_p
+    if out_flag[BG_R_ID]: out['Bg_r'] = Bg_r
 
-    if out_flag[BNU_P_ID]: out['Bnu_p'] = Bnu_p.base
-    if out_flag[BNU_R_ID]: out['Bnu_r'] = Bnu_r.base
-    return
+    if out_flag[BNU_P_ID]: out['Bnu_p'] = Bnu_p
+    if out_flag[BNU_R_ID]: out['Bnu_r'] = Bnu_r
+    return out
 
 
 
