@@ -209,10 +209,10 @@ cpdef dict avg_mg_table(table, long [:] group_idx, list fields, verbose=False):
     cdef double [:] rho = table['dens'][:]
     cdef double [:] temp = table['temp'][:]
     cdef double [:,:,:] opp_mg, opr_mg, emp_mg
-    cdef double [:,:] opp_mg_t, opr_mg_t, emp_mg_t
+    cdef double [:,:,:] opp_mg_nu, opr_mg_nu, emp_mg_nu
     cdef double [:] Bnu_p_t = np.empty(Np)
     cdef double [:] Bnu_r_t = np.empty(Np)
-    cdef double [:, :] Bg_p, Bg_r
+    cdef double [:, :] Bg_p, Bg_r, Bnu_p, Bnu_r
     cdef double epsrel = 1e-9
 
     # setting an flag array with values to be computed
@@ -228,13 +228,13 @@ cpdef dict avg_mg_table(table, long [:] group_idx, list fields, verbose=False):
     # Allocate all requested arrays
     if out_flag[OPP_MG_ID]:
         opp_mg = np.empty((Nr, Nt, Ng))
-        opp_mg_t = np.empty((Nr, Ng))
+        opp_mg_nu = np.empty((Nr, Nt, Np))
     if out_flag[OPR_MG_ID]:
         opr_mg = np.empty((Nr, Nt, Ng))
-        opr_mg_t = np.empty((Nr, Ng))
+        opr_mg_nu = np.empty((Nr, Nt, Np))
     if out_flag[EMP_MG_ID]:
         emp_mg = np.empty((Nr, Nt, Ng))
-        emp_mg_t = np.empty((Nr, Ng))
+        emp_mg_nu = np.empty((Nr,Nt, Np))
     if out_flag[BG_P_ID]:
         Bg_p = np.empty((Nt, Ng))
     if out_flag[BG_R_ID]:
@@ -245,41 +245,60 @@ cpdef dict avg_mg_table(table, long [:] group_idx, list fields, verbose=False):
         Bnu_r = np.empty((Nt, Np))
 
 
-    for j in range(Nt):
-        for i in range(Np):
-            U[i] = nu[i]/temp[j]
-        # computing bases
-
-        mg_weight_base(U, PLANCK_MEAN, epsrel, Ng, Bnu_p_t)
-        mg_weight_base(U, ROSSELAND_MEAN, epsrel, Ng,  Bnu_r_t)
-
-        if out_flag[BG_P_ID]: avg_subgroups(nu, Bnu_p_t, group_idx, Ng, Bg_p[j,:])
-        if out_flag[BG_R_ID]: avg_subgroups(nu, Bnu_r_t, group_idx, Ng, Bg_r[j,:])
-        if out_flag[BNU_P_ID]: Bnu_p[j] = Bnu_p_t
-        if out_flag[BNU_R_ID]: Bnu_r[j] = Bnu_p_t
-        #if verbose:
-        #    print '{0}/{1}: {2:.1e} eV'.format(j, Nt, temp[j])
-
+    # computing planck mean opacity
+    if out_flag[BNU_P_ID] or out_flag[BG_P_ID] or out_flag[OPP_MG_ID]:
         if out_flag[OPP_MG_ID]:
-            opp_mg_t = table['opp_mg'][:,j,:]
-            with nogil:
-                for i in range(Nr):
-                    avg_mg_spectra(U, opp_mg_t[i], Bnu_p_t, group_idx,
-                            PLANCK_MEAN, Ng, opp_mg[i,j,:])
+            opp_mg_nu = table['opp_mg'][:,:,:]
+        with nogil:
+            for j in range(Nt):
+                for k in range(Np):
+                    U[k] = nu[k]/temp[j]
 
+                mg_weight_base(U, PLANCK_MEAN, epsrel, Ng, Bnu_p_t)
+
+                if out_flag[BG_P_ID]: avg_subgroups(nu, Bnu_p_t, group_idx, Ng, Bg_p[j,:])
+                if out_flag[BNU_P_ID]: 
+                    for k in range(Np):
+                        Bnu_p[j, k] = Bnu_p_t[k]
+                if out_flag[OPP_MG_ID]:
+                    for i in range(Nr):
+                        avg_mg_spectra(U, opp_mg_nu[i,j,:], Bnu_p_t, group_idx,
+                                PLANCK_MEAN, Ng, opp_mg[i,j,:])
+
+    # computing rosseland mean opacity
+    if out_flag[BNU_R_ID] or out_flag[BG_R_ID] or out_flag[OPR_MG_ID]:
         if out_flag[OPR_MG_ID]:
-            opr_mg_t = table['opr_mg'][:,j,:]
-            with nogil:
-                for i in range(Nr):
-                    avg_mg_spectra(U, opr_mg_t[i], Bnu_r_t, group_idx,
-                            ROSSELAND_MEAN, Ng, opr_mg[i,j,:])
-        if out_flag[EMP_MG_ID]:
-            emp_mg_t = table['emp_mg'][:,j,:]
-            with nogil:
-                for i in range(Nr):
-                    avg_mg_spectra(U, emp_mg_t[i], Bnu_p_t, group_idx,
-                            PLANCK_MEAN, Ng, emp_mg[i,j,:])
+            opr_mg_nu = table['opr_mg'][:,:,:]
+        with nogil:
+            for j in range(Nt):
+                for k in range(Np):
+                    U[k] = nu[k]/temp[j]
 
+                mg_weight_base(U, ROSSELAND_MEAN, epsrel, Ng, Bnu_r_t)
+
+                if out_flag[BG_R_ID]: avg_subgroups(nu, Bnu_r_t, group_idx, Ng, Bg_r[j,:])
+                if out_flag[BNU_R_ID]: 
+                    for k in range(Np):
+                        Bnu_r[j, k] = Bnu_r_t[k]
+
+                if out_flag[OPR_MG_ID]:
+                    for i in range(Nr):
+                        avg_mg_spectra(U, opr_mg_nu[i,j,:], Bnu_r_t, group_idx,
+                                ROSSELAND_MEAN, Ng, opr_mg[i,j,:])
+
+    # computing planck mean emissivity
+    if out_flag[EMP_MG_ID]:
+        opp_mg_nu = table['opp_mg'][:,:,:]
+        with nogil:
+            for j in range(Nt):
+                for k in range(Np):
+                    U[k] = nu[k]/temp[j]
+
+                mg_weight_base(U, PLANCK_MEAN, epsrel, Ng, Bnu_p_t)
+
+                for i in range(Nr):
+                    avg_mg_spectra(U, emp_mg_nu[i,j,:], Bnu_p_t, group_idx,
+                            PLANCK_MEAN, Ng, emp_mg[i,j,:])
 
     if out_flag[OPP_MG_ID]: out['opp_mg'] = opp_mg
     if out_flag[OPR_MG_ID]: out['opr_mg'] = opr_mg
