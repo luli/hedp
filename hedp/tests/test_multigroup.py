@@ -8,7 +8,7 @@ from opacplot2.opg_hdf5  import OpgHdf5
 from hedp.opacity.AGS import project_on_grid
 
 
-def test_multigroup1():
+def dsds_multigroup1():
     """Use the fact that given u=nu/temp 
         if κ = u⁻³,   κ_p^g = [ln(1 - e^(-u)]_g^{g+1}
     """
@@ -40,7 +40,7 @@ def test_multigroup1():
     tab['opp_new'] = Ug[:,:,:-1]**(-3)
     tab['opr_new'] = Ug[:,:,:-1]**(-4)
     tab['emp_new'] = Ug[:,:,:-1]**(-3)
-    op_mg = avg_mg_table(tab, groups_idx, emp=True,debug=True)
+    op_mg = avg_mg_table(tab, groups_idx, ['opp_mg', 'opr_mg', 'emp_mg', 'Bg_p', 'Bg_r'])
     Bg_p, Bg_r = op_mg['Bg_p'], op_mg['Bg_r']
     yield  assert_allclose, np.isnan(Bg_p).any(), False, 1e-07, 0, 'Found nan in Planck weights'
     yield  assert_allclose, np.isnan(Bg_p).any(), False, 1e-07, 0, 'Found nan in Rosseland  weights'
@@ -57,8 +57,9 @@ def test_multigroup2():
     op0 = OpgHdf5.open_file('./data/Al_snp_10kgr.h5')
     op1 = OpgHdf5.open_file('./data/Al_snp_40gr.h5')
     group_idx, groups_new =  project_on_grid(op1['groups'][:], op0['groups'][:])
-    res = avg_mg_table(op0, group_idx, emp=True, debug=True, verbose=False)
-    for key, rtol in {'opp_mg':1e-3, 'opr_mg':1e-3, 'emp_mg':1.5}.iteritems():
+    res = avg_mg_table(op0, group_idx, fields=['opp_mg', 'opr_mg', 'emp_mg'],
+            weight_pars={'opp_mg': 'planck', 'opr_mg': 'rosseland', 'emp_mg': "planck"}) 
+    for key, rtol in {'opp_mg':1e-3, 'opr_mg':1e-3, 'emp_mg':0.7}.iteritems():
         yield assert_allclose, op1[key][:], res[key], rtol, 0, 'Not the same '+key
 
 
