@@ -67,6 +67,34 @@ class BaseProjGrid:
         return err_f
 
     @staticmethod
+    def _method_sg(nu, op, alpha=1.0, beta=0.5, window_size=101, order=3, deriv=2, log=True):
+        """
+        Cost function: Use normalized first order derivative
+
+        Parameters:
+        -----------
+            - nu [ndarray]: photon group boundaries
+            - op [ndarray]: spectra
+            - alpha [float]: in [0.0, 2.0], default 1.0
+                        alpha < 1: low sensitivity to gradients in the spectra
+                        alpha > 1: high sensitivity to gradients in the spectra
+        """
+        from ..math.derivative import savgol
+        if log:
+            iop = np.log10(op)
+            inu = np.log(nu)
+        else:
+            iop = op
+            inu = nu
+        err = np.abs(savgol(inu, iop, window_size=window_size, deriv=deriv, order=order))
+        err /= err.max()  # normalising to 1 so pow gives predictive results
+        err = err**alpha
+        err /= err.sum()
+        err_f = (err*(1-beta)+beta/len(op))
+        err_f /= err_f.sum()
+        return err_f
+
+    @staticmethod
     def repr_groups(groups, nlines=10):
         X = np.empty((4, len(groups)-1))
         dgroup_lin = np.diff(groups)
@@ -107,7 +135,8 @@ class SpectraProjGrid(BaseProjGrid):
         self.args = None
         self.nu = nu
         self.op = op
-        self.method_list = {'df1': self._method_df1, 'df2': self._method_df2,}
+        self.method_list = {'df1': self._method_df1, 'df2': self._method_df2,
+                'sg': self._method_sg}
 
     def _compute_cost(self):
         if self.func is None:
@@ -246,7 +275,7 @@ class TableProjGrid(BaseProjGrid):
 
         self.method = None
         self.func = None
-        self.method_list = {'df1': self._method_df1, 'df2': self._method_df2,}
+        self.method_list = {'df1': self._method_df1, 'df2': self._method_df2, 'sg': self._method_sg}
         groups_dict = {key: op['groups'][:] for key, op in tables.iteritems()}
         groups_list = groups_dict.values()
         self.groups = groups_ref = groups_list[0]

@@ -38,9 +38,36 @@ cdef extern from "gsl/gsl_integration.h":
                          double *result, double *abserr,
                          size_t * neval) nogil
 
+    struct gsl_integration_struct:
+        size_t limit
+        size_t size
+        size_t nrmax
+        size_t i
+        size_t maximum_level
+        double *alist
+        double *blist
+        double *rlist
+        double *elist
+        size_t *order
+        size_t *level
+
+ctypedef gsl_integration_struct gsl_integration_workspace
+
+cdef extern from "gsl/gsl_integration.h":
+    gsl_integration_workspace * gsl_integration_workspace_alloc (const size_t n) nogil
+    void gsl_integration_workspace_free (gsl_integration_workspace * w) nogil
+    int gsl_integration_qag (const gsl_function * f,
+                         double a, double b,
+                         double epsabs, double epsrel, size_t limit,
+                         int key,
+                         gsl_integration_workspace * workspace,
+                         double *result, double *abserr) nogil
+
+
 
 cdef int PLANCK_WEIGHT=1, ROSSELAND_WEIGHT=2, UNIFORM_WEIGHT=3
 cdef int ARITHMETIC_MEAN=4, GEOMETRIC_MEAN=5
+cdef int QNG_INTEGRATOR=1000, QAG_INTEGRATOR=1001
 
 
 cdef double planck_weight_func_scalar(double u, void * offset) nogil:
@@ -84,7 +111,8 @@ cdef double rosseland_weight_func_scalar(double u, void * offset) nogil:
     """
     return u**4*exp(-u+(<double *> offset)[0])/(1-exp(-u))**2
 
-cdef int mg_weight_base(double [:] U, int weight_type, double epsrel, double [:] B) nogil:
+cdef int mg_weight_base(double [:] U, int weight_type, double epsrel,
+        double [:] B, int integrator_flag) nogil:
     """
     Produce weights used in Planck and Rosseland computations
 
@@ -101,7 +129,8 @@ cdef int mg_weight_base(double [:] U, int weight_type, double epsrel, double [:]
     cdef int Nbreak, i, kind_int, status, Ng
     cdef double epsabs=0.0, total_abserr=0.0, abserr=0.0
     cdef gsl_function weight_int
-    cdef size_t neval
+    cdef size_t neval, workspace_size=100, qag_limit=99, qag_key=6  # GSL_INTEG_GAUSS61 ( 61 point Gauss-Kronrod rule)
+    cdef gsl_integration_workspace * qag_workspace
 
     Ng = U.shape[0]-1
 
@@ -114,16 +143,32 @@ cdef int mg_weight_base(double [:] U, int weight_type, double epsrel, double [:]
             B[i] = U[i+1] - U[i]
         return 0
     else:
-        with gil:
-            raise ValueError
-    for i in range(Ng):
-        weight_int.params = <void*> &U[i]
-        status = gsl_integration_qng(&weight_int, U[i], U[i+1],
-                             epsabs, epsrel, &B[i], &abserr, &neval)
-        total_abserr = max(abserr, total_abserr)
-        if status!=0:
-            with gil: raise ValueError(
-                    'Error for frequency index {0} format is {1}'.format(i, status)) 
+        with gil: raise ValueError
+    if integrator_flag == QNG_INTEGRATOR:
+        for i in range(Ng):
+            weight_int.params = <void*> &U[i]
+            status = gsl_integration_qng(&weight_int, U[i], U[i+1],
+                                 epsabs, epsrel, &B[i], &abserr, &neval)
+            total_abserr = max(abserr, total_abserr)
+            if status!=0:
+                with gil: raise ValueError(
+                        'Error in qng for frequency index {0} format is {1}'.format(i, status)) 
+    elif integrator_flag == QAG_INTEGRATOR:
+        qag_workspace = gsl_integration_workspace_alloc(workspace_size)
+        for i in range(Ng):
+            weight_int.params = <void*> &U[i]
+            status = gsl_integration_qag(&weight_int, U[i], U[i+1],
+                                 epsabs, epsrel, qag_limit, qag_key, qag_workspace,
+                                 &B[i], &abserr)
+            total_abserr = max(abserr, total_abserr)
+            if status!=0:
+                with gil: raise ValueError(
+                        'Error in qag for frequency index {0} format is {1}'.format(i, status)) 
+        gsl_integration_workspace_free(qag_workspace)
+
+
+    else:
+        with gil: raise ValueError
     return  0
 
 
@@ -235,6 +280,7 @@ cdef int all_dens_masked(int [:] mask) nogil:
 
 cpdef dict avg_mg_table(table, long [:] group_idx, list fields, 
             weight_pars={'opp': 'planck', 'opr': 'rosseland', 'emp': 'planck'}, epsrel=1e-9,
+            integrator='qng',
             mask=None, cost_pars={}):
     """
     Average an opacity table for one 
@@ -280,6 +326,7 @@ cpdef dict avg_mg_table(table, long [:] group_idx, list fields,
     cdef double [:] Bnu_r_t = np.empty(Np)
     cdef double [:, :] Bg_p, Bg_r, Bnu_p, Bnu_r
     cdef double cepsrel
+    cdef int integrator_flag
 
     if epsrel is not None:
         cepsrel = <double> epsrel
@@ -292,6 +339,14 @@ cpdef dict avg_mg_table(table, long [:] group_idx, list fields,
         mask_arr = mask
     if cost_pars:
         ccost_pars = cost_pars
+
+    if integrator=='qng':
+        integrator_flag = QNG_INTEGRATOR
+    elif integrator=='qag':
+        integrator_flag = QAG_INTEGRATOR
+    else:
+        raise ValueError('Wrong value for the integrator should be one of qag, qng!')
+
 
     # setting an flag array with values to be computed
     for i, key in enumerate(fields):
@@ -360,7 +415,7 @@ cpdef dict avg_mg_table(table, long [:] group_idx, list fields,
                 for k in range(Np+1):
                     U[k] = nu[k]/temp[j]
 
-                mg_weight_base(U, OPP_WEIGHT, cepsrel, Bnu_p_t)
+                mg_weight_base(U, OPP_WEIGHT, cepsrel, Bnu_p_t, integrator_flag)
 
                 if out_flag[BG_P_ID]: avg_subgroups(nu, Bnu_p_t, group_idx, Bg_p[j,:])
                 if out_flag[BNU_P_ID]: 
@@ -388,7 +443,7 @@ cpdef dict avg_mg_table(table, long [:] group_idx, list fields,
                 for k in range(Np+1):
                     U[k] = nu[k]/temp[j]
 
-                mg_weight_base(U, OPR_WEIGHT, cepsrel, Bnu_r_t)
+                mg_weight_base(U, OPR_WEIGHT, cepsrel, Bnu_r_t, integrator_flag)
 
                 if out_flag[BG_R_ID]: avg_subgroups(nu, Bnu_r_t, group_idx, Bg_r[j,:])
                 if out_flag[BNU_R_ID]: 
@@ -415,7 +470,7 @@ cpdef dict avg_mg_table(table, long [:] group_idx, list fields,
                 for k in range(Np+1):
                     U[k] = nu[k]/temp[j]
 
-                mg_weight_base(U, EMP_WEIGHT, cepsrel, Bnu_p_t)
+                mg_weight_base(U, EMP_WEIGHT, cepsrel, Bnu_p_t, integrator_flag)
 
                 if out_flag[EMP_ITP_ID]: avg_subgroups(nu, Bnu_p_t, group_idx, Bg_p[j,:])
 
