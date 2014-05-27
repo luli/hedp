@@ -82,7 +82,7 @@ def xray_filter_transmission(nu, element=None, thickness=None,layers=None):
     if layers is None:
         op = cold_opacity(element, 
                         hedp.matdb(element).solid_dens,
-                        nu)
+                        nu, 'pickle')
         return np.exp(-op*thickness)
     else:
         Transmissions = [xray_filter_transmission(nu, el, thick)\

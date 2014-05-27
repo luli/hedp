@@ -45,7 +45,7 @@ def cold_opacity(element, dens=0.1, nu=None, hdf5_backend='pytables'):
     --------
         opacity in cm⁻¹
     """
-    hdf5_backend = 'h5py'
+    #hdf5_backend = 'h5py'
     if hdf5_backend == 'h5py':
         import h5py
         with h5py.File(HENKE_DATA_PATH+'.h5', 'r') as f:
@@ -90,18 +90,25 @@ def cold_opacity(element, dens=0.1, nu=None, hdf5_backend='pytables'):
         return dens[:,:,np.newaxis]*op[np.newaxis, np.newaxis, :]
 
 
-def download_full(element):
+def download_full(element, dens=None):
     """
     Download files to database for given element
     """
+    import tables
     db = hedp.matdb(element)
     op_tot = []
     nu_tot = []
     for nu in [(10,100),(100, 1000), (1000, 9000), (9000, 30000)]:
-        if db.solid_dens:
-            solid_dens = db.solid_dens
+        if dens is None:
+            if db.solid_dens:
+                if db.solid_dens>0.1:
+                    solid_dens = db.solid_dens
+                else:
+                    solid_dens = 1e4*db.solid_dens  # this is a gas
+            else:
+                solid_dens = 0.1
         else:
-            solid_dens = 0.1
+            solid_dens=dens
         nu_arr, op_arr =  download(db.formula, solid_dens, nu=nu)
         nu_tot.append(nu_arr)
         op_tot.append(op_arr)
@@ -111,7 +118,7 @@ def download_full(element):
 
     data = {'op': op[mask], 'nu': nu[mask]}
 
-    with tables.openFile(HENKE_DATA_PATH, 'a') as f:
+    with tables.openFile(HENKE_DATA_PATH+'.h5', 'a') as f:
         atom = tables.Atom.from_dtype(data['op'].dtype)
         group = f.createGroup(f.root, element)
         for name, arr in data.iteritems():
@@ -136,9 +143,9 @@ def download(formula, dens, nu=(10,20000)):
 
     """
     br = mechanize.Browser(factory=mechanize.RobustFactory())
-    #br.addheaders = [('User-agent',
-    #    'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.1) \
-    #    Gecko/2008071615 Fedora/3.0.1-1.fc9 Firefox/3.0.1')]
+    br.addheaders = [('User-agent',
+        'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.1) \
+         Gecko/2008071615 Fedora/3.0.1-1.fc9 Firefox/3.0.1')]
     #br.set_proxies({"http":"this_proxy.com:8080"})
     post_vars = dict(Material="Enter Formula",
             Scan="Energy",
