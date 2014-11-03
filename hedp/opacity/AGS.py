@@ -258,7 +258,7 @@ class SelectRect:
 
 
 class TableProjGrid(BaseProjGrid):
-    def __init__(self, tables, selectors, groups_lim):
+    def __init__(self, tables, selectors, groups_lim, erad_weight=None):
         """
         Compute AMR projection for some opacity tables
 
@@ -271,7 +271,10 @@ class TableProjGrid(BaseProjGrid):
                    containing SelectPoints, SelectRect objects
         groups_lim: typle
                        (min, max) first and last group boundaries in eV
+        erad_weight: tuple or (groups, weights) or None
+                      groups and weights are 1D arrays with len(groups) = len(weights)+1
         """
+        from ..lib.multigroup import cellcentered_interpolate
 
         self.method = None
         self.func = None
@@ -302,6 +305,14 @@ class TableProjGrid(BaseProjGrid):
         self.t_cost = {key: np.zeros((op.Nr, op.Nt), dtype='object') for key, op in tables.iteritems()}
         self.t_cost_wsum = {key: np.zeros(self.Ng) for key, op in tables.iteritems()}
         self.cost_fn = np.zeros(self.Ng)
+        if erad_weight  is None:
+            self.erad_weight= np.ones(self.Ng)
+        else:
+            erad_weight_in = np.zeros(self.Ng_ini)
+            cellcentered_interpolate(erad_weight['groups'], erad_weight['weight'], groups_ref, erad_weight_in)
+            self.erad_weight = (erad_weight_in[self.groups_slice]/erad_weight_in.max())
+            self.erad_eps = erad_weight['alpha']
+
 
 
         # setting appropriate selectors for every table
@@ -326,7 +337,10 @@ class TableProjGrid(BaseProjGrid):
 
     def _compute_cost(self, groups, op):
         """ Compute cost """
-        err_cum =  np.cumsum(self.func(groups[self.groups_slice], op[self.groups_slice], **self.args))
+        err = self.func(groups[self.groups_slice], op[self.groups_slice], **self.args)
+        err = (1-self.erad_eps)*err/err.sum()  +  self.erad_eps* self.erad_weight/self.erad_weight.sum()
+        err /= err.sum()
+        err_cum =  np.cumsum(err)
         err_cum[0] = 0
         err_cum[-1] = 1.0
         return err_cum

@@ -69,6 +69,8 @@ cdef int PLANCK_WEIGHT=1, ROSSELAND_WEIGHT=2, UNIFORM_WEIGHT=3
 cdef int ARITHMETIC_MEAN=4, GEOMETRIC_MEAN=5
 cdef int QNG_INTEGRATOR=1000, QAG_INTEGRATOR=1001
 
+cdef double SMALL_FLOAT=1.0e-8
+
 
 cdef double planck_weight_func_scalar(double u, void * offset) nogil:
     """
@@ -501,6 +503,38 @@ cpdef dict avg_mg_table(table, long [:] group_idx, list fields,
     return out
 
 
+
+
+cpdef int cellcentered_interpolate(double[:] gr0, double[:] val0, double [:] gr, double [:] val) nogil: 
+    """ Take a cell centered variable val0 on a 1D grid gr0 and do a nearest neighbour interpolation onto 
+    a different grid gr"""
+    cdef int i, j
+    cdef int Nx0, Nx
+    cdef float nodeA, nodeB
+    Nx0 = val0.shape[0]
+    Nx =  val.shape[0]
+    with gil:
+        if gr0.shape[0] != Nx0+1:
+            raise ValueError('Initial grid should have {0} points while only {1} were provided!'.format(Nx0+1, gr0.shape[0])) 
+        if gr.shape[0] != Nx+1:
+            raise ValueError('New grid should have {0} points while only {1} were provided!!'.format(Nx+1, gr.shape[0])) 
+    j=0
+    for i in range(Nx):
+        nodeA, nodeB = gr[i], gr[i+1]
+        if nodeA <= gr0[0] or nodeB >= gr0[Nx0]:
+            # extrapolating
+            val[i] = SMALL_FLOAT
+        else:
+            if gr0[j] <= nodeA < nodeB <= gr0[j+1]:
+                val[i] = val0[j]
+            elif gr0[j] <= nodeA <= gr0[j+1]<=nodeB:
+                val[i] = 0.5*(val0[j] + val0[j+1])
+                j=j+1
+            else:
+                with gil:
+                    raise ValueError
+
+    
 
 
 
