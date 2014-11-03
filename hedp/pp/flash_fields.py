@@ -25,6 +25,6 @@ def _abar(field, data):
 add_field ('abar', function=_abar, take_log=False)
 
 def _zbar(field, data):
-    return data['ye'] * data['sumy']
+    return data['ye'] / data['sumy']
 
 add_field ('zbar', function=_zbar, take_log=False)
