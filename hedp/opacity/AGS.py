@@ -307,6 +307,7 @@ class TableProjGrid(BaseProjGrid):
         self.cost_fn = np.zeros(self.Ng)
         if erad_weight  is None:
             self.erad_weight= np.ones(self.Ng)
+            self.erad_eps = 0.0
         else:
             erad_weight_in = np.zeros(self.Ng_ini)
             cellcentered_interpolate(erad_weight['groups'], erad_weight['weight'], groups_ref, erad_weight_in)
