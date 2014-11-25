@@ -13,16 +13,24 @@ from Cython.Distutils import build_ext
 import numpy as np
 import Cython.Compiler.Options
 
-#Cython.Compiler.Options.annotate = True
+Cython.Compiler.Options.annotate = True
 
+
+INCLUDE_GSL = "/usr/include"
+LIB_GSL = "/usr/lib64"
 
 ext_modules=[
     Extension("hedp.lib.integrators",
              ["hedp/lib/integrators.pyx"],),
     Extension("hedp.lib.selectors",
-             ["hedp/lib/selectors.pyx"],)
-             #extra_compile_args=[''],
-             #extra_link_args=['']),
+             ["hedp/lib/selectors.pyx"],),
+    Extension("hedp.lib.multigroup",
+             ["hedp/lib/multigroup.pyx"],
+             extra_compile_args=['-O0', '-fopenmp', '-march=native', '-Wall'],
+             extra_link_args=['-O0', '-fopenmp', '-march=native'],
+             libraries=['gsl', 'gslcblas'],
+             library_dirs=[LIB_GSL],
+             ),
 ]
 
 setup(name='hedp',
@@ -33,6 +41,7 @@ setup(name='hedp',
       packages=find_packages(),
       cmdclass = {'build_ext': build_ext},
       ext_modules = ext_modules,
-      include_dirs=[np.get_include()],
+      include_dirs=[np.get_include(), INCLUDE_GSL],
+      package_data={'hedp': ['hedp/tests/data/*']}
      )
 

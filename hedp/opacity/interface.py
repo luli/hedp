@@ -12,8 +12,13 @@ try:
     SNOP_PRESENT = True
 except ImportError:
     SNOP_PRESENT = True
+try:
+    from hdf_interpolator import hdf_opacity
+    OPGHDF5_PRESENT = True
+except ImportError:
+    OPGHDF5_PRESENT = True
 
-def opacity_map( dens, tele, mat, nu, code='snop', mat_names=None):
+def opacity_map( dens, tele, mat, nu, backend='snop', mat_names=None, tables=None):
     assert dens.shape == tele.shape, 'dens and tele arrays should be of the same shape'
     op = np.zeros(dens.shape+nu.shape)*np.nan
     if mat_names is not None:
@@ -24,7 +29,7 @@ def opacity_map( dens, tele, mat, nu, code='snop', mat_names=None):
             mat_name = mat_names[mat_el]
         else:
             mat_name = mat_el
-        if code == 'snop':
+        if backend == 'snop':
             if SNOP_PRESENT:
                 op[mat_mask] = snop_opacity(mat_name, dens[mat_mask],
                         np.ones(tele[mat_mask].shape),
@@ -32,6 +37,14 @@ def opacity_map( dens, tele, mat, nu, code='snop', mat_names=None):
                         nu)
             else:
                 raise ValueError("Trying to use SNOP backend, but pysnop doesn't seem to be installed")
-        elif code == 'henke':
+        elif backend == 'henke':
             op[mat_mask] = cold_opacity(mat_name, dens[mat_mask], nu)
+        elif backend == 'hdf5':
+            if OPGHDF5_PRESENT:
+                op[mat_mask] = hdf_opacity(tables[mat_name], dens[mat_mask],
+                        tele[mat_mask],
+                        nu)
+            else:
+                raise ValueError("Trying to use OpgHdf5 backend, but opacplot2 doesn't seem to be installed")
+
     return op

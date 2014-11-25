@@ -181,11 +181,11 @@ if __name__ == '__main__':
         offset =  'from_end_4k'
     elif sum([key in args.filepath for key in ['Transverse_SOP_1D']]):
         offset =  'from_end'
-    offset = 'from_end'
+    offset = 'from_end_4'
     print offset
 
 
-    sp = HamamatsuFile(args.filepath, offset, 8)
+    sp = HamamatsuFile(args.filepath, offset, dtype="int16")
     print sp._offset_data
     print sp.data.shape, sp._nbytes
 
