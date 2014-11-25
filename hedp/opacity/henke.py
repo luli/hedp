@@ -74,6 +74,8 @@ def cold_opacity(element, dens=0.1, nu=None, hdf5_backend='pytables'):
         with open(HENKE_DATA_PATH+'.pickle', 'rb') as handle:
               mdict = pickle.load(handle)
               nu0, op0 = mdict[element]
+    else:
+        raise ValueError
     #print hdf5_backend
 
     if nu is not None:
