@@ -68,7 +68,7 @@ def ei_collision_rate(nele, zbar,tele):
 
 def ff_collision_frequency(nele, zbar,tele, lmbda):
     """
-    Compute inverse bremsstrahlung coeffient
+    Compute inverse bremsstrahlung coefficient
      
      ν_ib = (ne * ν_ei / nc) * 1/√(1 - ne/nc)
 
