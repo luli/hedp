@@ -44,7 +44,7 @@ General purpose module to analyse HEDP relevant experiments and hydrodynamic sim
    Defines a few useful quantities  in plasma physics:  the critical density, Coulomb logarithm, electron-ion collision rates, inverse Bremsstrahlung coefficient,  isentropic sound speed, Spitzer conductivity.
 
 
-#### Visualisation  `hedp.viz`
+#### Visualization  `hedp.viz`
    - Metric formatter for `matplotlib`
          
 #### Diagnostics  `hedp.diag`
