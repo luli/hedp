@@ -24,14 +24,14 @@ before_install:
 install: 
     - sudo apt-get install gsl-bin libgsl0-dev libgsl0ldbl libhdf5-serial-dev hdf5-tools
     - conda install --yes -c conda conda-env
-    - conda create -n testenv --yes $DEPS pip python=${TRAVIS_PYTHON_VERSION}
-    - source activate testenv
+#    - conda create -n testenv --yes $DEPS pip python=${TRAVIS_PYTHON_VERSION}
+#    - source activate testenv
     - pip install coveralls 
 #    - pip install mechanize
     - git clone https://github.com/rth/opacplot2
     - cd opacplot2/
-    # so we can use the cythoned files without installing them
-    - python setup.py build_ext --inplace -f -v
+# so we can use the cythoned files without installing them
+#    - python setup.py build_ext --inplace -f -v
     - python setup.py develop
     - cd ..
     - rm -rf opacplot2/
