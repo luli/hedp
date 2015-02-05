@@ -2,7 +2,7 @@ language: python
 matrix:
     include:
     - python: "2.7"
-      env: DEPS="numpy scipy nose matplotlib pandas scikit-image pytables cython"
+      env: DEPS="numpy scipy nose matplotlib pandas scikit-image pytables cython mechanize"
 
 # setup adapted from https://github.com/soft-matter/trackpy/blob/master/.travis.yml
 before_install:
@@ -28,6 +28,8 @@ install:
     - pip install coveralls
     - git clone https://github.com/rth/opacplot2
     - cd opacplot2/
+    # so we can use the cythoned files without installing them
+    - python setup.py build_ext --inplace
     - python setup.py install
     - cd ..
     - rm -rf opacplot2/
@@ -39,7 +41,7 @@ install:
 # command to run tests
 script: 
     - python ./hedp/tests/run.py
-    - coverage --source=hedp ./hedp/tests/run.py
+    - coverage run --source=hedp ./hedp/tests/run.py
 
 after_success:
     coveralls
