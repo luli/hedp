@@ -33,9 +33,10 @@ install:
     - cd opacplot2/
 # so we can use the cythoned files without installing them
 #    - python setup.py build_ext --inplace -f -v
-    - python setup.py develop
+    - python setup.py install
     - cd ..
     - rm -rf opacplot2/
+    - python setup.py develop
     - pwd
     - ls -R
 #- cd ./hedp/tests/
@@ -43,7 +44,7 @@ install:
 
 # command to run tests
 script: 
-    - coverage run --source=hedp ./hedp/tests/run.py --with-coverage
+    - coverage run --source=hedp ./hedp/tests/run.py --with-coverage --cover-package=hedp
 
 after_success:
     coveralls
