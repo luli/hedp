@@ -2,7 +2,7 @@ language: python
 matrix:
     include:
     - python: "2.7"
-      env: DEPS="numpy scipy nose matplotlib pandas scikit-image pytables"
+      env: DEPS="numpy scipy nose matplotlib pandas scikit-image pytables cython"
 
 # setup adapted from https://github.com/soft-matter/trackpy/blob/master/.travis.yml
 before_install:
