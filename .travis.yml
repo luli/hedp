@@ -44,7 +44,8 @@ install:
 
 # command to run tests
 script: 
-    - coverage run --source=hedp ./hedp/tests/run.py --with-coverage --cover-package=hedp
+    - python ./hedp/tests/run.py --with-coverage --cover-package=hedp
+    - coverage run --source=hedp ./hedp/tests/run.py
 
 after_success:
     coveralls
