@@ -12,7 +12,7 @@ import json
 if 'MATDB_PATH' in os.environ:
     MATDB_PATH = os.environ['MATDB_PATH']
 else:
-    raise RuntimeWarning('You should define a MATDB_PATH in your .bashrc !')
+    print('Warning: You should define a MATDB_PATH in your .bashrc !')
 
 def matdb(element):
     path = os.path.join(MATDB_PATH, 'db', element+ '.json')
