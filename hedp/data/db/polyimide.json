@@ -1,0 +1,8 @@
+{
+    "_comment:": "Polyimide (formula taken from CXro) cp in [J K-1 kg-1]",
+    "solid_dens": 1.43,
+    "A": 9.79,
+    "Z": 5.026,
+    "formula": "C22H10N2O5",
+    "cp": 1090
+}

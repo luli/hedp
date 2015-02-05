@@ -1,0 +1,39 @@
+{
+    "_comment:": "This is a basic Al file",
+    "solid_dens": 2.7,
+    "rho0": 2.7,
+    "A": 26.9815,
+    "Z": 13.0,
+    "formula": "Al",
+    "snop": {
+        "csm": 3.5e5,
+        "dhvapm": 3e10,
+        "dsm": 2.7,
+        "tboil": 2.5e3,
+        "ideg": 1,
+        "z": [13],
+        "a": [28.98],
+        "drek": [3.0],
+        "fraction": [1.0],
+        "fact": [100],
+        "nsigma": [0]
+        },
+    "spect": {
+        "Kα1": 1486.70,
+        "Kα2": 1486.27,
+        "Kβ1": 1557.45
+       },
+    "multi":{
+        "folder" : "Aluminium/",
+        "op": {
+            "snop": {
+                "_comment": "Snop generated opacity",
+                "eps": "AL__NG.eps.gz",
+                "opp": "AL__NG.opp.gz",
+                "opr": "AL__NG.opp.gz",
+                "opz": "AL__NG.opz.gz"
+            }
+        }
+
+    }
+}

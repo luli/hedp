@@ -1,0 +1,12 @@
+{
+    "_comment:": "This is a basic Silicon file",
+    "solid_dens": 2.329,
+    "rho0": 2.329,
+    "A": 28.085,
+    "Z": 14,
+    "formula": "Si",
+    "spect": {
+        "Kα1": 1740.0,
+        "Kα2": 1739.0
+       }
+}

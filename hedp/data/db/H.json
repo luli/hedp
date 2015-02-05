@@ -1,0 +1,17 @@
+{
+    "_comment:": "File for hydrogen",
+    "solid_dens": 89.0e-6,
+    "A": 1.008,
+    "Z": 1,
+    "formula": "H",
+    "snop": {
+        "csm": 3.5e5,
+        "dhvapm": 1e8,
+        "tboil": 20,
+        "ideg": 1,
+        "z": [1],
+        "drek": [3.0],
+        "fact": [10],
+        "nsigma": [0]
+        }
+}

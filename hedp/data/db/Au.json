@@ -1,0 +1,12 @@
+{
+    "_comment:": "This is a file for Gold",
+    "solid_dens": 19.3,
+    "A": 196.966,
+    "Z": 79.0,
+    "formula": "Au",
+    "snop": {
+        "z": [79.0],
+        "a": [196.966],
+        "fraction": [1.0]
+        }
+}

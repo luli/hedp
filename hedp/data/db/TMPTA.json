@@ -1,0 +1,19 @@
+{
+    "_comment:": "File for TMPTA",
+    "solid_dens": 1.24,
+    "A": 7.22,
+    "Z": 3.85,
+    "formula": "C15H20O6",
+    "snop": {
+        "_comment": "this part is wrong",
+        "csm": 2.5e5,
+        "dhvapm": 3e10,
+        "tboil": 2.5e3,
+        "ideg": 1,
+        "z": [6, 1, 35, 8],
+        "drek": [3.0, 3.0, 3.0, 3.0],
+        "fraction": [0.352, 0.47, 0.037, 0.141],
+        "fact" : [60, 1, 900, 80],
+        "nsigma": [0, 0, 1, 0]
+        }
+}

@@ -1,0 +1,25 @@
+{
+    "_comment:": "File for Iron",
+    "solid_dens": 7.87,
+    "rho0": 7.87,
+    "A": 55.85,
+    "Z": 26,
+    "formula": "Fe",
+    "snop": {
+        "csm": 7.2e5,
+        "dsm": 7.87,
+        "dhvapm": 3e11,
+        "tboil": 3.1e3,
+        "ideg": 1,
+        "z": [26],
+        "drek": [3.0],
+        "fact": [100],
+        "fraction": [1.0],
+        "nsigma": [0]
+        },
+    "spect": {
+        "Kα1": 6403.84,
+        "Kα2": 6390.84,
+        "Kβ1": 7057.98
+       }
+}

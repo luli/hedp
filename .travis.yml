@@ -22,7 +22,7 @@ before_install:
 install: 
     - sudo apt-get install gsl-bin libgsl0-dev libgsl0ldbl libhdf5-serial-dev hdf5-tools
     - conda install --yes -c conda conda-env
-    - conda create -n testenv --yes $DEPS pip python=$TRAVIS_PYTHON_VERSION
+    - conda create -n testenv --yes $DEPS pip python=${TRAVIS_PYTHON_VERSION}
     - source activate testenv
     - python setup.py install
 
