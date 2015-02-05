@@ -34,15 +34,13 @@ install:
     - python setup.py develop
     - cd ..
     - rm -rf opacplot2/
-    - ls -R
-    - pwd
-    - cd /
+    - cd ./hedp/tests/
 
 
 # command to run tests
 script: 
-    - python /home/travis/build/luli/hedp/hedp/tests/run.py
-    - coverage run --source=hedp /home/travis/build/luli/hedp/hedp/tests/run.py
+    - python ./run.py
+    - coverage run --source=hedp ./run.py
 
 after_success:
     coveralls
