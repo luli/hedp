@@ -53,9 +53,7 @@ class HamamatsuFile(object):
         >> plt.imshow(img.data)
         """
         self.filename = filename
-        if (type(offset) is str and\
-                offset not in ['auto', 'from_end', 'from_end_4k']) and\
-                (type(offset) is not int):
+        if (offset not in ['auto', 'from_end', 'from_end_4k']) and (type(offset) is not int):
             raise ValueError("Wrong input value for 'offset' input parameter! Acceptable values are 'auto', 'from_end', 'from_end_4k'.")
         self._offset_input = offset
         self._offset_whence = 0
