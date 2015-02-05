@@ -6,6 +6,7 @@ install:
     - sudo apt-get install gsl-bin libgsl0-dev libgsl0ldbl
     - sudo apt-get install libopenblas-base libopenblas-dev liblapack-dev
     - sudo apt-get install python-tables
+    - pip install nose numpy
 #    - cat requeriments.txt | xargs pip install
 before_install: sudo apt-get update
 # command to run tests
