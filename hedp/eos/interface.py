@@ -9,7 +9,7 @@ class EosBase:
     def __init__(self):
         pass
 
-def EosInterface( backend='gamma', specie='total', **args):
+def EosInterface(backend='gamma', specie='total', **args):
         """
         Compute the EoS equilibrium state. CGS units are used.
 
@@ -26,6 +26,10 @@ def EosInterface( backend='gamma', specie='total', **args):
         """
 
         # First we are determing the EoS mode
+        rho = args['rho']
+        temp = args['rho']
+        eint = args['eint']
+        pres = args['pres']
 
         if rho is not None and temp is not None:
             eos_mode = 'DT'
@@ -44,7 +48,7 @@ def EosInterface( backend='gamma', specie='total', **args):
             from .eospac_wrapper import EospacEos
             res = EospacEos(rho=rho, temp=temp, eint=eint, pres=pres,
                                     specie=specie, eos_mode=eos_mode, **args)
-        self.update(res)
+        #self.update(res)
         return
 
 

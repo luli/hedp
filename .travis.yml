@@ -25,6 +25,16 @@ install:
     - conda create -n testenv --yes $DEPS pip python=${TRAVIS_PYTHON_VERSION}
     - source activate testenv
     - python setup.py install
+    - pip install coveralls
+    - git clone https://github.com/rth/opacplot2 ../opacplot2
+    - python ../opacplot2/setup.py install
+
 
 # command to run tests
-script: nosetests --nologcapture -a '!slow'
+script: 
+    - python hedp/tests/run.py
+    - coverage --source=hedp hedp/tests/run.py
+
+after_success:
+    coveralls
+

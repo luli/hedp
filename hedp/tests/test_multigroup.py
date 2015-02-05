@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+import os
 from hedp.matdb import Storage
 from hedp.lib.multigroup import avg_mg_table
 import numpy as np
@@ -54,8 +55,9 @@ def dsds_multigroup1():
 
 def test_multigroup2():
     """Check that implemented averaging gives the same results as SNOP"""
-    op0 = OpgHdf5.open_file('./data/Al_snp_10kgr.h5')
-    op1 = OpgHdf5.open_file('./data/Al_snp_40gr.h5')
+    base_path = os.path.dirname(__file__)
+    op0 = OpgHdf5.open_file(os.path.join(base_path, 'data/Al_snp_10kgr.h5'))
+    op1 = OpgHdf5.open_file(os.path.join(base_path, 'data/Al_snp_40gr.h5'))
     group_idx, groups_new =  project_on_grid(op1['groups'][:], op0['groups'][:])
     res = avg_mg_table(op0, group_idx, fields=['opp_mg', 'opr_mg', 'emp_mg'],
             weight_pars={'opp_mg': 'planck', 'opr_mg': 'rosseland', 'emp_mg': "planck"}) 
