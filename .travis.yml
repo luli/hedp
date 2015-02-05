@@ -26,8 +26,11 @@ install:
     - source activate testenv
     - python setup.py install
     - pip install coveralls
-    - git clone https://github.com/rth/opacplot2 ../opacplot2
-    - python ../opacplot2/setup.py install
+    - git clone https://github.com/rth/opacplot2
+    - cd opacplot2/
+    - python setup.py install
+    - cd ..
+    - rm -r opacplot2/
 
 
 # command to run tests
