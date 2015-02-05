@@ -7,8 +7,8 @@ from scipy.interpolate import interp1d
 from scipy.ndimage import map_coordinates
 from scipy import constants as cst
 from scipy.constants import physical_constants
-from streak import streak_sens
-from goi import goi_sens
+from .streak import streak_sens
+from .goi import goi_sens
 from hedp.rad import planck, iplanck
 import inspect
 

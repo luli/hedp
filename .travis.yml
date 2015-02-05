@@ -1,6 +1,8 @@
 language: python
 matrix:
     include:
+    - python: "3.4"
+      env: DEPS="numpy scipy nose matplotlib pandas scikit-image pytables cython"
     - python: "2.7"
       env: DEPS="numpy scipy nose matplotlib pandas scikit-image pytables cython"
 
@@ -25,7 +27,7 @@ install:
     - conda create -n testenv --yes $DEPS pip python=${TRAVIS_PYTHON_VERSION}
     - source activate testenv
     - pip install coveralls 
-    - pip install mechanize
+#    - pip install mechanize
     - git clone https://github.com/rth/opacplot2
     - cd opacplot2/
     # so we can use the cythoned files without installing them
@@ -39,8 +41,8 @@ install:
 
 # command to run tests
 script: 
-    - python ./hedp/tests/run.py
-    - coverage run --source=hedp ./hedp/tests/run.py
+    - python /home/travis/build/luli/hedp/hedp/tests/run.py
+    - coverage run --source=hedp /home/travis/build/luli/hedp/hedp/tests/run.py
 
 after_success:
     coveralls

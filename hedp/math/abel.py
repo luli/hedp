@@ -110,7 +110,7 @@ def _abel_sym():
     K_d = 1/sqrt(r**2-y**2)
     res = integrate(P*K_d, (r,y, r1))
     sres= simplify(res)
-    print sres
+    print(sres)
     
 
 

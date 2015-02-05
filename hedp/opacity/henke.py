@@ -4,13 +4,16 @@
 # Roman Yurchak (LULI)
 # This software is governed by the CeCILL-B license under French law and
 # abiding by the rules of distribution of free software.
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
 import re
 import os
 import sys
 
 import numpy as np
-import mechanize
 import urllib
 from scipy.interpolate import interp1d
 
@@ -50,7 +53,7 @@ def cold_opacity(element, dens=0.1, nu=None, hdf5_backend='pytables'):
         import h5py
         with h5py.File(HENKE_DATA_PATH+'.h5', 'r') as f:
             if not '/'+element in f:
-                print "Warning: couldn't find cold opacity for {0} ; trying to download...".format(element)
+                print("Warning: couldn't find cold opacity for {0} ; trying to download...".format(element))
                 f.close()
                 download_full(element)
                 f = h5py.File(HENKE_DATA_PATH+'.h5', 'r')
@@ -61,7 +64,7 @@ def cold_opacity(element, dens=0.1, nu=None, hdf5_backend='pytables'):
         import tables
         with tables.open_file(HENKE_DATA_PATH+'.h5', 'r') as f:
             if not '/'+element in f:
-                print "Warning: couldn't find cold opacity for {0} ; trying to download...".format(element)
+                print("Warning: couldn't find cold opacity for {0} ; trying to download...".format(element))
                 f.close()
                 download_full(element)
                 f = tables.openFile(HENKE_DATA_PATH+'.h5', 'r')
@@ -144,6 +147,12 @@ def download(formula, dens, nu=(10,20000)):
       - op [ndarray]: array of opacities [cm².g⁻¹]
 
     """
+    try:
+        import mechanize
+    except ImportError:
+        print('Either using Python3 or mechanize is not supported!')
+    except:
+        raise
     br = mechanize.Browser(factory=mechanize.RobustFactory())
     br.addheaders = [('User-agent',
         'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.1) \
@@ -164,7 +173,7 @@ def download(formula, dens, nu=(10,20000)):
     response_txt = response.read()
     link = br.links().next()
     filename = br.retrieve('http://henke.lbl.gov'+link.url)
-    print 'Henke opacity downloaded for',dens,'g/cc'
+    print('Henke opacity downloaded for',dens,'g/cc')
     return parse(filename[0])
 
 def parse(path):
@@ -198,7 +207,7 @@ if __name__=='__main__':
             [100])
     #plt.loglog(nu, op)
     #plt.show()
-    print op[...,0]
+    print(op[...,0])
 
 
 

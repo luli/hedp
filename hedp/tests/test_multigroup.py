@@ -61,7 +61,7 @@ def test_multigroup2():
     group_idx, groups_new =  project_on_grid(op1['groups'][:], op0['groups'][:])
     res = avg_mg_table(op0, group_idx, fields=['opp_mg', 'opr_mg', 'emp_mg'],
             weight_pars={'opp_mg': 'planck', 'opr_mg': 'rosseland', 'emp_mg': "planck"}) 
-    for key, rtol in {'opp_mg':1e-3, 'opr_mg':1e-3, 'emp_mg':0.7}.iteritems():
+    for key, rtol in {'opp_mg':1e-3, 'opr_mg':1e-3, 'emp_mg':0.7}.items():
         yield assert_allclose, op1[key][:], res[key], rtol, 0, 'Not the same '+key
 
 

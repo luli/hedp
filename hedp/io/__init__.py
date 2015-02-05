@@ -7,7 +7,7 @@
 
 
 #from sifreader import readSIF
-from andor import SifFile
-from hamamatsu import HamamatsuFile
+from .andor import SifFile
+from .hamamatsu import HamamatsuFile
 
 

@@ -1,5 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import tables
 import numpy as np
 from scipy.spatial import distance_matrix
@@ -116,8 +121,8 @@ class BaseProjGrid:
         idx_proj = self.itp(x)
         idx_proj = np.unique(np.rint(idx_proj).astype(dtype='int'))
         if  ngroups!= len(idx_proj)-1:
-            print 'Warning: projection returned {0} groups while {1} groups were requested!'.format(
-                    len(idx_proj)-1, ngroups)
+            print('Warning: projection returned {0} groups while {1} groups were requested!'.format(
+                    len(idx_proj)-1, ngroups))
         return idx_proj, self.groups[1:][idx_proj]
 
 class SpectraProjGrid(BaseProjGrid):
@@ -285,8 +290,8 @@ class TableProjGrid(BaseProjGrid):
         if len(groups_list)>1:
             for gidx, group in enumerate(groups_list[1:]):
                 if not np.allclose(groups_ref, group, rtol=5e-4):
-                    print groups_ref
-                    print group
+                    print(groups_ref)
+                    print(group)
                     raise ValueError("Opactity tables {0} and {1} don't have the same photon grid!".format(tables.keys()[0], tables.keys()[gidx+1]))
         if len(groups_lim)!=2:
             raise ValueError
@@ -368,7 +373,7 @@ class TableProjGrid(BaseProjGrid):
         colors_list =  cycle(['r', 'b', 'k', 'g', 'orange', 'navy', 'gray', 'brown'])
         for key in self.t_op:
             ridx_arr, tidx_arr =  np.nonzero(self.t_mask[key])
-            print self.t_weight[key][ridx_arr, tidx_arr]/self.t_weight[key].max()
+            print(self.t_weight[key][ridx_arr, tidx_arr]/self.t_weight[key].max())
             ax.scatter(self.t_op[key]['dens'][ridx_arr], self.t_op[key]['temp'][tidx_arr],
                     alpha=0.7, label=key, c=colors_list.next(),
                     s=200*self.t_weight[key][ridx_arr, tidx_arr]/self.t_weight[key].max(),

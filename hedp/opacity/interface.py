@@ -6,14 +6,14 @@
 # abiding by the rules of distribution of free software.
 
 import numpy as np
-from henke import cold_opacity
+from .henke import cold_opacity
 try:
-    from snop import snop_opacity
+    from .snop import snop_opacity
     SNOP_PRESENT = True
 except ImportError:
     SNOP_PRESENT = True
 try:
-    from hdf_interpolator import hdf_opacity
+    from .hdf_interpolator import hdf_opacity
     OPGHDF5_PRESENT = True
 except ImportError:
     OPGHDF5_PRESENT = True

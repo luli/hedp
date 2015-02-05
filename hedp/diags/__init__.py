@@ -5,5 +5,5 @@
 # This software is governed by the CeCILL-B license under French law and
 # abiding by the rules of distribution of free software.
 
-import sop
+from . import sop
 

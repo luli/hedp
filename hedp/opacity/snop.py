@@ -10,9 +10,15 @@ import sys
 
 import numpy as np
 
-from pysnop.snop_wrap import run as run_snop
-
-from hedp import matdb
+try:
+    from pysnop.snop_wrap import run as run_snop
+except ImportError:
+    pass
+    
+try:
+    from hedp import matdb
+except ImportError:
+    pass
 
 
 def snop_opacity(element, dens, tele, nu, full_output=False):
@@ -52,4 +58,4 @@ def snop_opacity(element, dens, tele, nu, full_output=False):
 if __name__ == '__main__':
     op = snop_opacity('Al', np.array([[0.1, 1.], [0.3, 0.5]]), 
             np.array([[10,20], [1., 3]]), [100, 102, 103], full_output=False)
-    print nu
+    print(nu)

@@ -50,4 +50,4 @@ class MetricFormatter:
 
 if __name__ == '__main__':
     d = 1e-8
-    print MetricFormatter()(d)
+    print(MetricFormatter()(d))

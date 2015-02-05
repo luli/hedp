@@ -180,12 +180,12 @@ if __name__ == '__main__':
     elif sum([key in args.filepath for key in ['Transverse_SOP_1D']]):
         offset =  'from_end'
     offset = 'from_end_4'
-    print offset
+    print(offset)
 
 
     sp = HamamatsuFile(args.filepath, offset, dtype="int16")
-    print sp._offset_data
-    print sp.data.shape, sp._nbytes
+    print(sp._offset_data)
+    print(sp.data.shape, sp._nbytes)
 
     d = sp.data
     cs = plt.imshow(sp.data, vmax=np.percentile(sp.data, 99.9))
