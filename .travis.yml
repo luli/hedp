@@ -29,7 +29,7 @@ install:
     - conda install --yes $DEPS pip python=${TRAVIS_PYTHON_VERSION}
     - pip install coveralls 
 #    - pip install mechanize
-    - git clone https://github.com/rth/opacplot2
+    - git clone https://github.com/rth/opacplot2 --branch=private --single-branch
     - cd opacplot2/
 # so we can use the cythoned files without installing them
 #    - python setup.py build_ext --inplace -f -v
