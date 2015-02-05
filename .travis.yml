@@ -26,6 +26,7 @@ install:
     - conda install --yes -c conda conda-env
 #    - conda create -n testenv --yes $DEPS pip python=${TRAVIS_PYTHON_VERSION}
 #    - source activate testenv
+    - conda install --yes $DEPS pip python=${TRAVIS_PYTHON_VERSION}
     - pip install coveralls 
 #    - pip install mechanize
     - git clone https://github.com/rth/opacplot2
@@ -42,7 +43,7 @@ install:
 
 # command to run tests
 script: 
-    - coverage run --source=hedp ./hedp/tests/run.py
+    - coverage run --source=hedp ./hedp/tests/run.py --with-coverage
 
 after_success:
     coveralls
