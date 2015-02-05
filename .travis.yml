@@ -30,7 +30,7 @@ install:
     - cd opacplot2/
     - python setup.py install
     - cd ..
-    - rm -r opacplot2/
+    - rm -rf opacplot2/
 
 
 # command to run tests
