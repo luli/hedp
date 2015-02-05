@@ -31,6 +31,7 @@ install:
     - python setup.py install
     - cd ..
     - rm -rf opacplot2/
+    - pwd
 
 
 # command to run tests
