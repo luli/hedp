@@ -25,7 +25,8 @@ install:
     - conda create -n testenv --yes $DEPS pip python=${TRAVIS_PYTHON_VERSION}
     - source activate testenv
     - python setup.py install
-    - pip install coveralls
+    - pip install coveralls 
+    - pip install mechanize
     - git clone https://github.com/rth/opacplot2
     - cd opacplot2/
     # so we can use the cythoned files without installing them
@@ -33,9 +34,6 @@ install:
     - python setup.py install
     - cd ..
     - rm -rf opacplot2/
-    - pwd
-    - ls
-    - ls -R
 
 
 # command to run tests
