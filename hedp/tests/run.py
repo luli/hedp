@@ -4,7 +4,9 @@ if __name__ == '__main__':
     import nose
     import sys
     result = nose.run()
-    sys.exit(int(result))
+    status = int(not result)
+    print('Exit status: {}'.format(status))
+    sys.exit(int(not result))
 
 
 

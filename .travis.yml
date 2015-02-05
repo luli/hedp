@@ -24,7 +24,6 @@ install:
     - conda install --yes -c conda conda-env
     - conda create -n testenv --yes $DEPS pip python=${TRAVIS_PYTHON_VERSION}
     - source activate testenv
-    - python setup.py install
     - pip install coveralls 
     - pip install mechanize
     - git clone https://github.com/rth/opacplot2
@@ -33,6 +32,8 @@ install:
     - python setup.py develop
     - cd ..
     - rm -rf opacplot2/
+    - ls -R
+    - pwd
 
 
 # command to run tests
