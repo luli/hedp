@@ -2,3 +2,4 @@ numpy
 scipy
 numexpr
 cython
+tables
