@@ -30,10 +30,9 @@ install:
     - git clone https://github.com/rth/opacplot2
     - cd opacplot2/
     # so we can use the cythoned files without installing them
-    - python setup.py install
+    - python setup.py develop
     - cd ..
     - rm -rf opacplot2/
-    - cd ./build/
 
 
 # command to run tests
