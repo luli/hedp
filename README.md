@@ -57,3 +57,7 @@ General purpose module to analyse HEDP relevant experiments and hydrodynamic sim
      
     
 
+## Test suite
+
+[![Coverage Status](https://coveralls.io/repos/luli/hedp/badge.svg?branch=master)](https://coveralls.io/r/luli/hedp?branch=master)
+
