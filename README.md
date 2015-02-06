@@ -11,11 +11,12 @@ General purpose module to analyse HEDP relevant experiments and hydrodynamic sim
 
 
 ## Dependencies
-   The use of this module requires `python-2.7` with the usual scientific python modules such as `numpy`, `scipy`, `matplotlib`, `cython`, `pandas`.
+   This module requires Python 2.7, 3.3 or 3.4  with the usual scientific python modules `numpy`, `scipy`, `matplotlib`, `cython`, `pandas`, `pytables`  together with `opacplot2` ( https://github.com/rth/opacplot2).
 
-   The following modules are also strongly recommended
- - opacplot2  ( https://github.com/rth/opacplot2)
- - PyEOSPAC (https://github.com/luli/pyeospac)
+
+ Optional dependencies include:
+ - The GNU Scientific Library (GSL), required for calculating of Planck/Rosseland means
+ - PyEOSPAC (https://github.com/luli/pyeospac), for interfacing with tabulated EoS
 
 ## List of features
   

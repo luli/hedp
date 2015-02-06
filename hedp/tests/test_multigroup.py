@@ -2,11 +2,17 @@
 # -*- coding: utf-8 -*-
 import os
 from hedp.matdb import Storage
-from hedp.lib.multigroup import avg_mg_table
+from unittest.case import SkipTest
 import numpy as np
 from numpy.testing import assert_allclose
 from opacplot2.opg_hdf5  import OpgHdf5
 from hedp.opacity.AGS import project_on_grid
+try:
+    from hedp.lib.multigroup import avg_mg_table
+except ImportError:
+    raise SkipTest
+else:
+    raise
 
 
 def dsds_multigroup1():

@@ -16,22 +16,26 @@ import Cython.Compiler.Options
 Cython.Compiler.Options.annotate = True
 
 
-INCLUDE_GSL = "/usr/include"
-LIB_GSL = "/usr/lib64"
+# Optional path to find the the GNU scientific library (GSL)
+
+INCLUDE_GSL = None #  "/usr/include"
+LIB_GSL = None #  "/usr/lib64"
 
 ext_modules=[
     Extension("hedp.lib.integrators",
              ["hedp/lib/integrators.pyx"],),
     Extension("hedp.lib.selectors",
              ["hedp/lib/selectors.pyx"],),
-    Extension("hedp.lib.multigroup",
+]
+
+if INCLUDE_GSL:
+    ext_modules.append(Extension("hedp.lib.multigroup",
              ["hedp/lib/multigroup.pyx"],
              extra_compile_args=['-O3', '-fopenmp', '-march=native', '-Wall'],
              extra_link_args=['-O3', '-fopenmp', '-march=native'],
              libraries=['gsl', 'gslcblas'],
              library_dirs=[LIB_GSL],
-             ),
-]
+             ))
 
 setup(name='hedp',
       version='0.1',
