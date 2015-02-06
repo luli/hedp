@@ -46,7 +46,29 @@ def test_laplace():
     D0 =  R+Z
     yield assert_allclose, nd.filters.laplace(D0)[1:-1,1:-1], np.zeros(D0.shape)[1:-1, 1:-1], 1e-6, 1e-6
     D0 =  R**2
-    yield  assert_allclose,nd.filters.laplace(D0)[1:-1,1:-1]/dx**2, 2*np.ones(D0.shape)[1:-1, 1:-1], 1e-6
+    yield assert_allclose, nd.filters.laplace(D0)[1:-1,1:-1]/dx**2, 2*np.ones(D0.shape)[1:-1, 1:-1], 1e-6
 
 
+
+def test_abel_step():
+    n = 800
+    r = np.linspace(0, 20, n)
+    dr = np.diff(r)[0]
+    rc = 0.5*(r[1:]+r[:-1])
+    fr = np.exp(-rc**2)
+    #fr += 1e-1*np.random.rand(n)
+#    plt.plot(rc,fr,'b', label='Original signal')
+    F = abel(fr,dr=dr)
+    F_a = (np.pi)**0.5*fr.copy()
+
+    F_i = abel(F,dr=dr, inverse=True)
+    #sys.exit()
+#    plt.plot(rc, F_a, 'r', label='Direct transform [analytical expression]')
+#    mask = slice(None,None,5)
+#    plt.plot(rc[mask], F[mask], 'ko', label='Direct transform [computed]')
+#    plt.plot(rc[mask], F_i[mask],'o',c='orange', label='Direct-inverse transform')
+    yield assert_allclose, fr, F_i, 5e-3, 1e-6, 'Test that direct>inverse Abel equals the original data'
+    yield assert_allclose, F_a, F, 5e-3, 1e-6, 'Test direct Abel transforms failed!'
+
+    
 
