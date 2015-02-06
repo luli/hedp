@@ -11,12 +11,14 @@ General purpose module to analyse HEDP relevant experiments and hydrodynamic sim
 
 
 ## Dependencies
-   This module requires Python 2.7, 3.3 or 3.4  with the usual scientific python modules `numpy`, `scipy`, `matplotlib`, `cython`, `pandas`, `pytables`  together with `opacplot2` ( https://github.com/rth/opacplot2).
+   This module requires Python 2.7, 3.3 or 3.4  with the usual scientific python modules `numpy`, `scipy`,  `cython`, `pytables`  together with `opacplot2` ( https://github.com/rth/opacplot2).
 
 
  Optional dependencies include:
- - The GNU Scientific Library (GSL), required for calculating of Planck/Rosseland means
- - PyEOSPAC (https://github.com/luli/pyeospac), for interfacing with tabulated EoS
+ - `matplotlib`
+ - The GNU Scientific Library (GSL), required for calculating the Planck/Rosseland means
+ - PyEOSPAC (https://github.com/luli/pyeospac), for interfacing with the tabulated EoS
+ - `nose`, for running the test suite
 
 ## List of features
   
@@ -29,7 +31,7 @@ General purpose module to analyse HEDP relevant experiments and hydrodynamic sim
    - Kramer-Unsoldt opacity model
    - generation of a database with cold henke opacities
    - Thomas Fermi pressure ionization.
-   - Calculation of Planck and Rosseland (mutigroup) means
+   - Calculation of Planck and Rosseland (gray/mutigroup) means
    - Automatic group selection for multigroup opacities
    - General interpolators intended for visualisation for the EoS and opacity tables (requires [opacplot](https://github.com/rth/opacplot2) and [pyeospac](https://github.com/luli/pyeospac) modules).
 
