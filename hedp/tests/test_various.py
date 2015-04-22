@@ -11,6 +11,5 @@ from hedp.viz.formatters import MetricFormatter
 def test_metric_formatter():
     d = 1e-8
     f = MetricFormatter()
-    print(f(d))
     assert f(d) == u"10 n"
 

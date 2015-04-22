@@ -212,6 +212,7 @@ class SelectPoints:
         N = len(ridx)
         return ridx, tidx, np.ones(N)*self.weight/N
 
+
 class SelectRect:
     def __init__(self, rho_lim, temp_lim, weight, regexp, Nrho=5, Ntemp=5):
         """
@@ -230,7 +231,7 @@ class SelectRect:
           - Nrho : int
                    number of points in density
           - Ntemp: int
-                   number of points in 
+                   number of points in temperature
         """
         if not ( len(rho_lim) == len(temp_lim) == 2):
             raise TypeError('rho_lim and temp_lim should be tuples of len 2!')
