@@ -81,7 +81,7 @@ def abel(fr=None, dr=1.0, inverse=False,dfr=None):
             else:
                 f = - np.gradient(f)[-1]/(dr*np.pi)
         else:
-            f = - f/np.pi
+            f = - dfr/np.pi
 
     else:
         f *= 2*r
