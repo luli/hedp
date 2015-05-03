@@ -61,7 +61,7 @@ def test_abel_step():
     F = abel(fr,dr=dr)
     F_a = (np.pi)**0.5*fr.copy()
 
-    F_i = abel(F,dr=dr, inverse=True)
+    F_i = abel(F,dr=dr, inverse=True, derivative=np.gradient)
     #sys.exit()
 #    plt.plot(rc, F_a, 'r', label='Direct transform [analytical expression]')
 #    mask = slice(None,None,5)

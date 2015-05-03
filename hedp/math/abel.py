@@ -7,6 +7,7 @@
 
 import numpy as np
 from hedp.lib.integrators import abel_integrate
+from hedp.math.derivative import gradient
 
 def iabel(fr, dr=1):
     """
@@ -15,7 +16,7 @@ def iabel(fr, dr=1):
     """
     return abel(fr, dr, inverse=True)
 
-def abel(fr=None, dr=1.0, inverse=False,dfr=None):
+def abel(fr=None, dr=1.0, inverse=False, derivative=gradient):
     """
     Returns the direct or inverse Abel transform of a function
     sampled at discrete points.
@@ -53,38 +54,24 @@ def abel(fr=None, dr=1.0, inverse=False,dfr=None):
     out: 1d or 2d numpy array of the same shape as fr
         with either the direct or the inverse abel transform.
     """
-    if fr is not None:
-        assert isinstance(fr, np.ndarray)
-        f = fr.copy()
-    elif dfr is not None:
-        assert isinstance(dfr, np.ndarray)
-        f = dfr.copy()
-    else:
-        raise ValueError('Either fr or dfr should be provided!')
+    if inverse and derivative: # i.e. a derivative function is provided
+        fr = derivative(fr)/dr
+        ## setting the derivative at the origin to 0
+        if fr.ndim == 1:
+            fr[0] = 0
+        else:
+            fr[:,0] = 0
 
-
-    if f.ndim == 1:
-        f = f.reshape((1, -1))
+    f = np.atleast_2d(fr.copy())
 
     r = (np.arange(f.shape[1])+0.5)*dr
 
     if inverse:
-        if dfr is None:
-            if f.shape[0] == 1:
-                # messy computation of the derivative in 1d
-                der = np.zeros(f.shape)
-                f0 = f[0]
-                der[0, 1:-1] = f0[2:] - f0[:-2]
-                der[0, 0] = f0[1] - f0[0]
-                der[0,-1] = f0[-1] - f0[-2]
-                f = - der/(2*dr*np.pi)
-            else:
-                f = - np.gradient(f)[-1]/(dr*np.pi)
-        else:
-            f = - dfr/np.pi
-
+        f *= - 1./np.pi
     else:
         f *= 2*r
+
+    f = np.asarray(f, order='C')
 
     out = abel_integrate(f, r)
 
