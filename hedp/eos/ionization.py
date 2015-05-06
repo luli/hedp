@@ -15,8 +15,8 @@ def thomas_fermi_ionization(rho, Te, Z, A):
         -----------
             - rho : ndarray: density [g.cm⁻³]
             - Te : ndarray: temperature [eV]
-            - A : float:
             - Z : float:
+            - A : float:
         Returns:
         --------
             - Zion: ndarray: average ionization
