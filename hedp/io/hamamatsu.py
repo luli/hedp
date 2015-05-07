@@ -146,7 +146,7 @@ class HamamatsuFile(object):
                 metadata[idx][1] = mval
             return (sect_name, dict(metadata))
         except:
-            return ('Error', 'here')
+            return ('Error', {'error': 'error'})
 
     def _read_data(self):
         """Reading the binary data
@@ -173,12 +173,35 @@ class HamamatsuFile(object):
             self.data = np.fromfile(f, dtype=self._dtype,
                     count=np.prod(self.shape)).reshape(self.shape[::-1])
 
+    @property
+    def time_range(self):
+        """ Get time range (e.g. 50 ns) in seconds """
+        tr_str = self['Time Range']
+        val, unit = tr_str.split(' ')
+        val = float(val)
+        unit_multiplier = {'ps': 1e-12, 'ns': 1e-9, 'us': '1e-6'}[unit]
+        return val*unit_multiplier
+
+
+    def __getitem__(self, key):
+        """
+        Query an element from the header by key
+
+            HamamatsuFile[key]
+        """
+        for section in self.header.values():
+            for ckey, val in section.items():
+                if ckey == key:
+                    return val
+        else:
+            raise ValueError
+
     def __repr__(self):
         """Default representation of the class.
         This method is used when calling pring HamammatsuReader
         """
         out = ""
-        for section_name, section_data in sorted(self.header.iteritems()):
+        for section_name, section_data in sorted(self.header.items()):
             if section_name== 'Error':
                 continue
             out += '\n'.join(['='*80, " "*20 + section_name, '='*80]) + '\n'
