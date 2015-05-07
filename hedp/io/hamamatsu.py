@@ -7,9 +7,14 @@
 
 import re
 import numpy as np
+import warnings
+import os.path
+
+warnings.simplefilter('error', UserWarning)
 
 class HamamatsuFile(object):
-    def __init__(self, filename, offset='from_end', dtype='int32', ignore_header=False, shape=None):
+    def __init__(self, filename, offset='from_end', dtype='int32',
+            ignore_header=False, shape=None):
         """ A parser to read Hamamatsu streak camera's .img output files.
         This code was partly adapted from an ImageJ plugin.
 
@@ -69,7 +74,28 @@ class HamamatsuFile(object):
         else:
             self._offset_data = offset
             self.shape = shape
+        self.heristic_analysis()
         self._read_data()
+
+    def heristic_analysis(self):
+        """ Try to determine whether the provided offset and dtype are
+        consistent given the total file size """
+
+        img_len = np.prod(self.shape)*self._nbytes
+        file_len = os.path.getsize(self.filename)
+        flag_1 = file_len < img_len
+        flag_2 = file_len > 1.5*img_len
+        if  flag_1 or flag_2:
+            print("""Warning: hedp.io.HamamatsuFile 
+        File size {}, image size {}""".format(
+                    img_len, file_len))
+            if flag_1:
+                print(" "*9,"File length smaller than the expected size of the image!")
+            if flag_2:
+                print(" "*9,"File length larger by more then 50% the expected size of the image!")
+            print(" "*9, 'The dtype (or the determined shape) are probably wrong')
+
+
 
     def _read_header(self):
         """Read the Hamamatsu header for the given filename
@@ -130,9 +156,10 @@ class HamamatsuFile(object):
             try:
                 f.seek(self._offset_data, self._offset_whence)
             except IOError:
-                print('Error: seeking outside of file limits.')
+                print('Error: hedp.io.HamamatsuFile seeking outside of file limits.')
                 print('       Failed to parse file.')
                 print("       Either the 'offset'  or 'dtype' input arguments must be wrong!")
+                raise
             except:
                 raise
 
