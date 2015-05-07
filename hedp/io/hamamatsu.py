@@ -127,7 +127,17 @@ class HamamatsuFile(object):
         Internal use only.
         """
         with open(self.filename, 'rb') as f:
-            f.seek(self._offset_data, self._offset_whence)
+            try:
+                f.seek(self._offset_data, self._offset_whence)
+            except IOError:
+                print('Error: seeking outside of file limits.')
+                print('       Failed to parse file.')
+                print("       Either the 'offset'  or 'dtype' input arguments must be wrong!")
+            except:
+                raise
+
+
+
             #if self._nbytes == 2:
             #    dtype= 'int16'
             #elif self._nbytes == 4:
