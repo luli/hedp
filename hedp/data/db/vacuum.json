@@ -1,0 +1,8 @@
+{
+    "_comment:": "This is a file for the vacuum material in FLASH",
+    "solid_dens": 1e-6,
+    "rho0": 1e-6,
+    "A": 1.0,
+    "Z": 1.0,
+    "formula": "vacuum"
+}
