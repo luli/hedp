@@ -37,7 +37,7 @@ class LaserPulse(object):
 
 
 class LaserBeams(object):
-    def __init__(self, pars, N=500, t_end=1.7e-9):
+    def __init__(self, pars, N=500, t_end=1.7e-9, gaussian_target_ratio=2.0):
         """
         Initalize the Laser Beam
 
@@ -49,13 +49,19 @@ class LaserBeams(object):
           - pars: a MegredDict object with the parameters of the simulation
           - N :  number of points in the laser pulse profile
           - t_end: duration of the ray-tracing
+          - gaussian_target_ratio: the size of the domain to map for the laser ray tracing.
+                     By default, use 2x the size of ed_gaussianRadiusMajor
         """
         self.p = pars
         self.t_end = t_end
+        self.gaussian_target_ratio = gaussian_target_ratio
         self.P_time = np.linspace(0, t_end, N)
         self._get_beams_surface()
+        self.gridnRadialTics = []
+        self.numberOfRays = []
 
-    def set_pulses(self, *pulses):
+
+    def set_pulses(self, pulses):
         self.Intensity = [el.I0 for el in pulses]
         self.dt = [el.dt for el in pulses]
         self.pulse_profile = [el.profile for el in pulses]
@@ -67,9 +73,11 @@ class LaserBeams(object):
     def _get_beams_surface(self):
         self.beam_surface = []
         self.num_bream = len(self.p['ed_crossSectionFunctionType'])
+        self.targetSemiAxis = []
         for idx, cross_section in enumerate(self.p['ed_crossSectionFunctionType']):
             if cross_section == 'gaussian2D':
                 S0 = Int_super_gaussian(self.p['ed_gaussianRadiusMajor'][idx], self.p['ed_gaussianExponent'][idx])
+                self.targetSemiAxis.append(self.p['ed_gaussianRadiusMajor'][idx]*self.gaussian_target_ratio)
             else:
                 raise NotImplementedError
             self.beam_surface.append(S0)
@@ -81,9 +89,26 @@ class LaserBeams(object):
                'ed_numberOfSections': [len(self.P_time)]*self.num_bream,
                'ed_pulseNumber': range(self.num_bream),
                'ed_numberOfBeams': self.num_bream,
-               'ed_numberOfPulses': self.num_bream}
-
+               'ed_numberOfPulses': self.num_bream,
+               'ed_targetSemiAxisMajor': self.targetSemiAxis,
+               'ed_targetSemiAxisMinor': self.targetSemiAxis,
+               'ed_gridnRadialTics': self.gridnRadialTics,
+               'ed_numberOfRays': self.numberOfRays}
         return out
+
+
+    def adapt_ray_tracing(self, dx, rays_per_cell=4, radial_ticks_to_rays_factor=8):
+        """
+        This assumes 3D in 2D ray tracing 
+        """
+
+        for idx, cross_section in enumerate(self.p['ed_crossSectionFunctionType']):
+            if cross_section == 'gaussian2D':
+                self.gridnRadialTics = np.asarray([ rays_per_cell*beam_size/dx for beam_size in self.targetSemiAxis], dtype=np.float)
+                self.numberOfRays = self.gridnRadialTics*int(radial_ticks_to_rays_factor)
+            else:
+                raise NotImplementedError
+
 
     def __repr__(self):
         """
@@ -97,7 +122,10 @@ class LaserBeams(object):
                    'Duration [ns]',
                    'Cross section',
                    'FWHM [um]',
-                   'SG gamma']
+                   'SG gamma',
+                   'nRadialTicks',
+                   "numberOfRays"
+                   ]
 
         dataset = [np.asarray(self.Intensity),
                    self.Energy,
@@ -107,6 +135,8 @@ class LaserBeams(object):
                    self.p['ed_crossSectionFunctionType'],
                    np.asarray(self.p['ed_gaussianRadiusMajor'])*1e4,
                    self.p['ed_gaussianExponent'],
+                   self.gridnRadialTics,
+                   self.numberOfRays
                    ]
 
 
@@ -118,6 +148,8 @@ class LaserBeams(object):
                         '{:>10}',
                         '{:>10.1f}',
                         '{:>10.2f}',
+                        '{:>10}',
+                        '{:>10}',
                         ]
 
 

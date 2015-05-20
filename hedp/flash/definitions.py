@@ -57,3 +57,24 @@ class MergedDict(collections.MutableMapping):
         return key.lower()
 
 
+def parse_flash_header(path):
+    """
+    Parse Flash.h looking for variable definitions of the form,
+      #define variable value
+
+    Returns a dictionary with the corresponding values.
+    """
+    import re
+    out = {}
+    regexp = re.compile(r'#define (\w+) (\d+)')
+    with open(path, 'r') as f:
+        for line in f:
+            m = re.match(regexp, line)
+            if m:
+                key, val = m.groups()
+                out[key] = int(val)
+    return out
+
+
+
+
