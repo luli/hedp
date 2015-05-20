@@ -6,28 +6,29 @@
 # abiding by the rules of distribution of free software.
 
 import collections
+import os
+import fnmatch
 
 
 class MergedDict(collections.MutableMapping):
-    def __init__(self, primary, secondary):
+    def __init__(self, *objects):
         """
-        A read only structure that can query values from two dictionaries.
+        A read only structure that can query values from multiple dictionaries,
+        the ealier ones in the list having a higher priority
 
         Parameters:
-          - primary: dict
-          - secondary: dict
+        -----------
+          a list of dictionaries (e.g. MergedDict(dict1, dict2, dict3) )
         """
-        self.primary = {self.__keytransform__(key): val for key, val in primary.items()}
-        self.secondary = {self.__keytransform__(key): val for key, val in secondary.items()}
+        self.collection = [{self.__keytransform__(key): val for key, val in obj.items()} for obj in objects]
 
     def __getitem__(self, key):
         """ Get an element """
         key = self.__keytransform__(key)
 
-        if key in self.primary:
-            return self.primary[key]
-        elif key in self.secondary:
-            return self.secondary[key]
+        for obj in self.collection:
+            if key in obj:
+                return obj[key]
         else:
             raise KeyError
 
@@ -42,8 +43,9 @@ class MergedDict(collections.MutableMapping):
 
     @property
     def _merged(self):
-        tmp = self.primary.copy()
-        tmp.update(self.secondary)
+        tmp = {}
+        for obj in self.collection[::-1]:
+            tmp.update(**obj)
         return tmp
 
     def __iter__(self):
@@ -74,6 +76,18 @@ def parse_flash_header(path):
                 key, val = m.groups()
                 out[key] = int(val)
     return out
+
+
+def find_files(locations_list, pattern): 
+    """
+    Given a list of folder find the files marching the pattern (unix regexp).
+    """
+    matches = []
+    for base_dir in locations_list:
+        for root, dirnames, filenames in os.walk(os.path.abspath(base_dir)):
+          for filename in fnmatch.filter(filenames, pattern):
+            matches.append(os.path.join(root, filename))
+    return matches
 
 
 
