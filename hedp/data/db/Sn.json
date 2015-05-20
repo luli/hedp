@@ -1,0 +1,13 @@
+{
+    "_comment:": "File for Tin",
+    "solid_dens": 7.28,
+    "rho0": 7.28,
+    "A": 118.710,
+    "Z": 50,
+    "formula": "Sn",
+    "snop": {
+        "dsm": 7.28,
+        "z": [50],
+        "fraction": [1.0]
+        }
+}
