@@ -93,7 +93,9 @@ class LaserBeams(object):
                'ed_targetSemiAxisMajor': self.targetSemiAxis,
                'ed_targetSemiAxisMinor': self.targetSemiAxis,
                'ed_gridnRadialTics': self.gridnRadialTics,
-               'ed_numberOfRays': self.numberOfRays}
+               'ed_numberOfRays': self.numberOfRays,
+               'ed_pulseNumber': range(1, self.num_bream+1) # this is very restrictive and needs to be extended
+              } 
         return out
 
 
@@ -148,8 +150,8 @@ class LaserBeams(object):
                         '{:>10}',
                         '{:>10.1f}',
                         '{:>10.2f}',
-                        '{:>10}',
-                        '{:>10}',
+                        '{:>10.0f}',
+                        '{:>10.0f}',
                         ]
 
 

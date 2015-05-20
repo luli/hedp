@@ -28,6 +28,35 @@ class FlashEosMaterials(dict):
         self.num_materials = len(self.materials)
         self.data = {key: {} for key in self.materials}
 
+    def setup_radiative_grid(self):
+        import opacplot2 as opp
+        rad_grid = []
+        for spec in self.materials:
+            if self.data[spec]['material'] == 'vacuum':
+                rad_grid.append(None)
+                continue
+            if self.data[spec]['op_table'] is None:
+                raise ValueError('Opacity table not set for specie {}'.format(spec))
+
+            f = opp.OpacIonmix(self.data[spec]['op_table'],
+                                self.data[spec]['A']/opp.NA, twot=True, man=True, verbose=False)
+            rad_grid.append(f.opac_bounds[:])
+
+        # check that all the radiative grids are identical
+        grid0 = filter(lambda x: x is not None, rad_grid)[0]
+        for idx, grid in enumerate(rad_grid):
+            if grid is None:
+                continue
+            try:
+                np.testing.assert_allclose(grid, grid0)
+            except:
+                print('Error: radiative grids are not the same!')
+                raise
+
+        self['rt_mgdBounds'] = grid0
+        self['rt_mgdNumGroups'] = len(grid0) - 1
+
+
     def set(self, spec, matid, eos_table=None, op_table=None, **args):
         """
         Set a FLASH material
@@ -62,6 +91,8 @@ class FlashEosMaterials(dict):
                 val = mat['rho0']
             elif self.temp0 is not None:
                 val = self.temp0
+            elif 'temp' in args:
+                val = args['temp']
             else: # this is a temperature and we set it to 300K (i.e. room temperature)
                 val = 300.
 
@@ -84,8 +115,6 @@ class FlashEosMaterials(dict):
         else:
             if eos_table is None:
                 raise ValueError
-            if op_table is None:
-                raise ValueError
             vacuum_pars = { "op_{}Absorb" : "op_tabpa",
                             "op_{}Emiss" : "op_tabpe",
                             "op_{}Trans" :  "op_tabro",
@@ -104,13 +133,29 @@ class FlashEosMaterials(dict):
 
 
             self.data[spec]['eos_table'] = matches[0]
+            self['eos_{}TableFile'.format(spec)] = matches[0]
+
+            if op_table is not None:
+                matches = find_files(self.op_dirs, op_table)
+                if not matches:
+                    raise ValueError('Could not find any matching Opacity file {} in \n {}'.format(eos_table, self.eos_dirs))
+                if len(matches)>1:
+                    print('Warning: found multiple Opacity files for {},\n {}'.format(eos_table, matches))
+                    print('         taking the first table!')
+
+                self.data[spec]['op_table'] = matches[0]
+                self['op_{}FileName'.format(spec)] = matches[0]
+            else:
+                self.data[spec]['op_table'] = None
+
+
 
     def validate(self):
         value = ~np.asarray([not self.data[spec] for spec in self.materials])
         if value.all():
             return True
         else:
-            idx = np.nonzero(value)[0]
+            idx = np.nonzero(~value)[0]
             print(idx)
             raise ValueError('Species {} has not been initialized!'.format( np.asarray(self.materials)[idx]))
 
@@ -131,27 +176,35 @@ class FlashEosMaterials(dict):
                    'trad',
                    ]
 
-        entry_format = ['{:>10}',
-                        '{:>10}',
-                        '{:>10}',
-                        '{:>10}',
-                        '{:>10.3e}',
-                        '{:>10.3e}',
-                        '{:>10.3f}',
-                        '{:>10.3f}',
+        entry_format = ['{:>15}',
+                        '{:>15}',
+                        '{:>15}',
+                        '{:>15}',
+                        '{:>15.3e}',
+                        '{:>15.3e}',
+                        '{:>15.3e}',
+                        '{:>15.3e}',
                         ]
 
 
         out = ['', '='*80, ' '*26 + 'Material parameters', '='*80]
 
-        row_format_labels ="{:10}" + "{:>10}" * self.num_materials
+        row_format_labels ="{:10}" + "{:>15}" * self.num_materials
 
         out.append(row_format_labels.format('', *self.materials))
 
         for key, fmt in zip(labels, entry_format):
-            row_format ="{:18}" + fmt*self.num_materials
+            row_format ="{:10}" + fmt*self.num_materials
             values = [self.data[spec][key] for spec in self.materials]
-            out.append(row_format.format(label, *values))
+            out.append(row_format.format(key, *values))
+
+        out += ['', 'EoS']
+        for spec in self.materials:
+            out.append('   {}: {}'.format(spec, self.data[spec]['eos_table']))
+        out += ['', 'Opacity']
+        for spec in self.materials:
+            out.append('   {}: {}'.format(spec, self.data[spec]['op_table']))
+
 
 
         out += ['='*80, '']
