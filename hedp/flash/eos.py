@@ -12,7 +12,7 @@ from .definitions import find_files
 
 
 class FlashEosMaterials(dict):
-    def __init__(self, header, p, eos_dirs=['./', ], op_dirs=['./'], Zmin=0.1, temp0=None):
+    def __init__(self, header, p, eos_dirs=['./', ], op_dirs=['./'], Zmin=0.1, **args):
         """
         Convinience class to setup the EoS and opacities of a FLASH simulation
         """
@@ -21,16 +21,17 @@ class FlashEosMaterials(dict):
         self.Zmin = Zmin
         self.eos_dirs = eos_dirs
         self.op_dirs = op_dirs 
-        self.temp0=temp0
+        self.default_args = args
 
         self.materials = [key.split('_')[0].lower() for key in header \
                                 if key.endswith('_SPEC')]
         self.num_materials = len(self.materials)
         self.data = {key: {} for key in self.materials}
 
-    def setup_radiative_grid(self):
+    def setup_radiative_grid(self, validate=False):
         import opacplot2 as opp
         rad_grid = []
+        
         for spec in self.materials:
             if self.data[spec]['material'] == 'vacuum':
                 rad_grid.append(None)
@@ -41,17 +42,21 @@ class FlashEosMaterials(dict):
             f = opp.OpacIonmix(self.data[spec]['op_table'],
                                 self.data[spec]['A']/opp.NA, twot=True, man=True, verbose=False)
             rad_grid.append(f.opac_bounds[:])
+            if not validate:
+                # if not validating we just need one radiative grids
+                break
 
-        # check that all the radiative grids are identical
         grid0 = filter(lambda x: x is not None, rad_grid)[0]
-        for idx, grid in enumerate(rad_grid):
-            if grid is None:
-                continue
-            try:
-                np.testing.assert_allclose(grid, grid0)
-            except:
-                print('Error: radiative grids are not the same!')
-                raise
+        if validate:
+            # check that all the radiative grids are identical
+            for idx, grid in enumerate(rad_grid):
+                if grid is None:
+                    continue
+                try:
+                    np.testing.assert_allclose(grid, grid0)
+                except:
+                    print('Error: radiative grids are not the same!')
+                    raise
 
         self['rt_mgdBounds'] = grid0
         self['rt_mgdNumGroups'] = len(grid0) - 1
@@ -89,8 +94,10 @@ class FlashEosMaterials(dict):
                 val = args[key]
             elif key == 'rho':
                 val = mat['rho0']
-            elif self.temp0 is not None:
-                val = self.temp0
+            elif key in self.default_args:
+                val = self.default_args[key]
+            elif 'temp' in self.default_args:
+                val = self.default_args['temp']
             elif 'temp' in args:
                 val = args['temp']
             else: # this is a temperature and we set it to 300K (i.e. room temperature)
