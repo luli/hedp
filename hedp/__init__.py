@@ -8,7 +8,7 @@
 
 from . import io
 from . import diags
-from .matdb import matdb, MATDB_PATH, Storage
+from .materials import matdb, MATDB_PATH, Storage, load_material_database
 
 from .import cst
 from . import  pp

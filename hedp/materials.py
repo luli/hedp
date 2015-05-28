@@ -25,11 +25,34 @@ def matdb(element):
             'The specified element {0} does not exist in the database {1}'.format(
                                         element, os.path.join(MATDB_PATH, 'db')))
     with open(path, 'r') as f:
-        d = json.load(f)
+        try:
+            d = json.load(f)
+        except ValueError:
+            print('Error: Syntax error in {}.json file!'.format(element))
+            raise
+        except:
+            raise
         for key in d:
             if type(d[key]) is dict:
                 d[key] = Storage(d[key])
         return Storage(d)
+
+
+def load_material_database():
+    """ Load the material database """
+    material_keys = [os.path.splitext(el)[0] for el in os.listdir(os.path.join(MATDB_PATH, 'db')) if el.endswith('.json')]
+
+    db = {}
+    incorrect_files = []
+    for key in material_keys:
+        try:
+            db[key] = matdb(key)
+        except:
+            incorrect_files.append(key)
+    if incorrect_files:
+        raise ValueError("Some materials in the database failed to parse: {}".format(incorrect_files))
+    return db
+
 
 class Storage(dict):
     """
