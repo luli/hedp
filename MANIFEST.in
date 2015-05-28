@@ -1,0 +1,5 @@
+include README.md
+recursive-include scripts *.py
+recursive-include scripts *.pyx
+recursive-include gprcore hedp/tests/data/*
+
