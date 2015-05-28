@@ -1,0 +1,13 @@
+{
+    "_comment:": "File for Ni",
+    "solid_dens": 8.902,
+    "rho0": 8.902,
+    "A": 58,6934,
+    "Z": 28,
+    "formula": "Ni",
+    "snop": {
+        "dsm": 8.902,
+        "z": [50],
+        "fraction": [1.0]
+        }
+}
