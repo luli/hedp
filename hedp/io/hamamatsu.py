@@ -5,6 +5,12 @@
 # This software is governed by the CeCILL-B license under French law and
 # abiding by the rules of distribution of free software.
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+#from __future__ import unicode_literals
+
+
 import re
 import numpy as np
 import warnings
@@ -69,17 +75,24 @@ class HamamatsuFile(object):
             self._nbytes = 2
         else:
             raise ValueError("Wrong input value for dtype!")
+
+        self._set_opener()
+
         if not ignore_header:
             self._read_header()
         else:
             self._offset_data = offset
             self.shape = shape
+        #print(self._offset_data)
         self.heristic_analysis()
         self._read_data()
 
     def heristic_analysis(self):
         """ Try to determine whether the provided offset and dtype are
         consistent given the total file size """
+        if self._compression:
+            # don't bother with file size arguments if the file is compressed
+            return
 
         img_len = np.prod(self.shape)*self._nbytes
         file_len = os.path.getsize(self.filename)
@@ -87,13 +100,29 @@ class HamamatsuFile(object):
         flag_2 = file_len > 1.5*img_len
         if  flag_1 or flag_2:
             print("""Warning: hedp.io.HamamatsuFile 
-        File size {}, image size {}""".format(
-                    img_len, file_len))
+        File size {}, image size {}={}""".format(
+                    img_len, file_len, self.shape))
             if flag_1:
                 print(" "*9,"File length smaller than the expected size of the image!")
             if flag_2:
                 print(" "*9,"File length larger by more then 50% the expected size of the image!")
             print(" "*9, 'The dtype (or the determined shape) are probably wrong')
+        return
+
+
+    def _set_opener(self):
+        """ Internal function to open, optionally compressed, hamamatsu file """
+        if self.filename.lower().endswith('.img'):
+            opener = open
+            self._compression = False
+        elif self.filename.lower().endswith('.img.bz2'): # bz2 compressed sif files
+            import bz2
+            opener = bz2.BZ2File
+            self._compression = True
+        else:
+            raise ValueError('Wrong extension.')
+
+        self._open = opener
 
 
 
@@ -101,7 +130,7 @@ class HamamatsuFile(object):
         """Read the Hamamatsu header for the given filename
         Internal use only
         """
-        f = open(self.filename, 'r')
+        f = self._open(self.filename, 'r')
         idx = 0
         header = ''
         # reading the header 
@@ -118,10 +147,11 @@ class HamamatsuFile(object):
         self.shape = np.array(self.header['Acquisition']['areGRBScan'].split(',')[-2:]).astype(np.int)
         f.close()
 
-        if type(self._offset_input) is str:
-            offset_list = {'auto': self._offset_auto,
-                           'from_end': -np.prod(self.shape)*self._nbytes,
-                           'from_end_4k': - np.prod(self.shape)*self._nbytes - 4092}
+        offset_list = {'auto': self._offset_auto,
+                       'from_end': -np.prod(self.shape)*self._nbytes,
+                       'from_end_4k': - np.prod(self.shape)*self._nbytes - 4092}
+
+        if self._offset_input in offset_list:
 
             self._offset_data = offset_list[self._offset_input]
             if self._offset_input.startswith('from_end'):
@@ -129,7 +159,10 @@ class HamamatsuFile(object):
                 self._offset_whence = 2
         elif type(self._offset_input) is int:
             self._offset_data = self._offset_input
+        else:
+            raise ValueError
 
+        
 
         return self.header
 
@@ -152,7 +185,7 @@ class HamamatsuFile(object):
         """Reading the binary data
         Internal use only.
         """
-        with open(self.filename, 'rb') as f:
+        with self._open(self.filename, 'rb') as f:
             try:
                 f.seek(self._offset_data, self._offset_whence)
             except IOError:
@@ -163,15 +196,17 @@ class HamamatsuFile(object):
             except:
                 raise
 
+            data_len = np.prod(self.shape)*np.dtype(self._dtype).itemsize
+            data_str = f.read(data_len)
+            if data_len != len(data_str):
+                print(data_len, len(data_str))
+                raise ValueError('File ended before all data was read. Probably wrong offset or dtype!')
 
 
-            #if self._nbytes == 2:
-            #    dtype= 'int16'
-            #elif self._nbytes == 4:
-            #    dtype= 'int32'
+            self.data = np.fromstring(data_str, dtype=self._dtype).reshape(self.shape[::-1])
 
-            self.data = np.fromfile(f, dtype=self._dtype,
-                    count=np.prod(self.shape)).reshape(self.shape[::-1])
+            #self.data = np.fromfile(f, dtype=self._dtype,
+            #        count=np.prod(self.shape)).reshape(self.shape[::-1])
 
     @property
     def time_range(self):

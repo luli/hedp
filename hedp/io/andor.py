@@ -22,6 +22,7 @@ class SifFile:
         self.data = 0
         if path != "":
             self.open(path)
+                
 
     def __add__(self, other):
         new_sif = self.__class__()
@@ -62,7 +63,16 @@ class SifFile:
     def open(self, path):
         """Opens the SIF file at path and stores the data in
         self.data."""
-        sif = open(path, "rb")
+
+        if path.lower().endswith('.sif'):
+            opener = open
+        elif path.lower().endswith('.sif.bz2'): # bz2 compressed sif files
+            import bz2
+            opener = bz2.BZ2File
+        else:
+            raise ValueError('Wrong extension.')
+
+        sif = opener(path, 'rb')
 
         # Verify we have a SIF file
         if sif.readline().strip() != "Andor Technology Multi-Channel File":
