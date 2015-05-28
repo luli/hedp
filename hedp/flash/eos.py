@@ -6,7 +6,7 @@
 # abiding by the rules of distribution of free software.
 
 import numpy as np
-from ..matdb import matdb
+from .. import matdb
 from .definitions import find_files
 
 
