@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import os
-from hedp.matdb import Storage
+from hedp.materials import Storage
 from unittest.case import SkipTest
 import numpy as np
 from numpy.testing import assert_allclose
