@@ -75,7 +75,7 @@ class SifFile:
         sif = opener(path, 'rb')
 
         # Verify we have a SIF file
-        if sif.readline().strip() != "Andor Technology Multi-Channel File":
+        if sif.readline().strip() != b"Andor Technology Multi-Channel File":
             sif.close()
             raise Exception("File %s is not an Andor SIF file." % path)
 

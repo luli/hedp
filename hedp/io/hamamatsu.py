@@ -8,7 +8,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-#from __future__ import unicode_literals
+from __future__ import unicode_literals
 
 
 import re
@@ -132,16 +132,16 @@ class HamamatsuFile(object):
         """
         f = self._open(self.filename, 'r')
         idx = 0
-        header = ''
+        header = b''
         # reading the header 
         while idx < 13: 
-            header += f.readline()[:-2] # removes the "\n\r" at the end
+            header += f.readline().rstrip() # removes the "\n\r" at the end
             idx += 1
         # "magically" compute the data offset
-        self._offset_auto = ord(header[2]) + 1856
+        self._offset_auto = header[2] + 1856
 
         header =  header[:self._offset_auto+300] # add an extra random header for offset
-        header = re.sub(r'(?P<section>\[[^\]]+\])', '\n\g<section>', header)
+        header = re.sub(r'(?P<section>\[[^\]]+\])', '\n\g<section>', header.decode("utf-8"))
         header = header.splitlines()[1:]
         self.header = dict([self._header_sect2dict(line) for line in header])
         self.shape = np.array(self.header['Acquisition']['areGRBScan'].split(',')[-2:]).astype(np.int)
