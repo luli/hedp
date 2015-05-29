@@ -138,10 +138,15 @@ class HamamatsuFile(object):
             header += f.readline().rstrip() # removes the "\n\r" at the end
             idx += 1
         # "magically" compute the data offset
-        self._offset_auto = header[2] + 1856
+        try:
+            self._offset_auto = ord(header[2]) + 1856
+        except:
+            self._offset_auto = header[2] + 1856
+
+
 
         header =  header[:self._offset_auto+300] # add an extra random header for offset
-        header = re.sub(r'(?P<section>\[[^\]]+\])', '\n\g<section>', header.decode("utf-8"))
+        header = re.sub(r'(?P<section>\[[^\]]+\])', '\n\g<section>', header.decode('utf-8'))
         header = header.splitlines()[1:]
         self.header = dict([self._header_sect2dict(line) for line in header])
         self.shape = np.array(self.header['Acquisition']['areGRBScan'].split(',')[-2:]).astype(np.int)

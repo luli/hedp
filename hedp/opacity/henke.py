@@ -20,12 +20,6 @@ from scipy.interpolate import interp1d
 import hedp
 from time import time
 import numbers
-#from pyquery import PyQuery as pq
-#try:
-#    from .. import matdb
-#except ValueError:
-#    sys.path.append('../')
-#    import matdb
 
 HENKE_DATA_PATH = os.path.join(hedp.MATDB_PATH, 'henke_op')
 
@@ -147,17 +141,32 @@ def download(formula, dens, nu=(10,20000)):
       - op [ndarray]: array of opacities [cm².g⁻¹]
 
     """
-    try:
-        import mechanize
-    except ImportError:
-        print('Either using Python3 or mechanize is not supported!')
-    except:
-        raise
-    br = mechanize.Browser(factory=mechanize.RobustFactory())
-    br.addheaders = [('User-agent',
-        'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.1) \
-         Gecko/2008071615 Fedora/3.0.1-1.fc9 Firefox/3.0.1')]
-    #br.set_proxies({"http":"this_proxy.com:8080"})
+    # all of this could be more simpler done with requests, etc.
+    # but trying to use only standard library functions 
+    import urllib
+    import urllib2
+    import sys
+    if sys.version_info.major > 2:
+        from html.parser import HTMLParser
+    else:
+        from HTMLParser import HTMLParser
+    from cStringIO import StringIO
+
+    class LinksExtractor(HTMLParser):
+
+        url = None
+
+        def handle_starttag(self, tag, attrs):
+            # Only parse the 'anchor' tag.
+            if tag == "a":
+               # Check the list of defined attributes.
+               for name, value in attrs:
+                   # If href is defined, print it.
+                   if name == "href":
+                       self.url = value
+
+    url_base = 'http://henke.lbl.gov'
+    url_query = '/cgi-bin/filter.pl'
     post_vars = dict(Material="Enter Formula",
             Scan="Energy",
             Npts=500,
@@ -168,15 +177,21 @@ def download(formula, dens, nu=(10,20000)):
     post_vars['Min'], post_vars['Max'] = nu
     post_vars['Density'] = dens
     post_vars['Thickness'] = 0.1
-    response = br.open('http://henke.lbl.gov/cgi-bin/filter.pl',
+    req = urllib2.Request(url_base + url_query,
             data=urllib.urlencode(post_vars))
+    response = urllib2.urlopen(req)
     response_txt = response.read()
-    link = br.links().next()
-    filename = br.retrieve('http://henke.lbl.gov'+link.url)
-    print('Henke opacity downloaded for',dens,'g/cc')
-    return parse(filename[0])
+    html_parser = LinksExtractor()
+    html_parser.feed(response_txt)
+    html_parser.close()
+    if not html_parser.url:
+        raise ValueError('Failed to parse output html code!')
+    req = urllib2.Request('http://henke.lbl.gov' + html_parser.url)
+    response = urllib2.urlopen(req)
+    data = StringIO(response.read())
+    return parse(data)
 
-def parse(path):
+def parse(f):
     """
     Parse the file downloaded from the website
 
@@ -185,15 +200,15 @@ def parse(path):
       - nu [ndarray]: array of energies [eV]
       - op [ndarray]: array of opacities [cm².g⁻¹]
     """
-    with open(path, 'r') as f:
-        header = f.readline()
+    header = f.readline().decode('utf-8')
     regexp = r'^[\s\w]+=(?P<dens>(?:(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)+)[\s\w]+=(?P<thick>[0-9.]+)'
     try:
         dens, thick  = re.match(regexp, header).groups()
         dens, thick = float(dens), float(thick)
     except AttributeError:
-        raise ValueError("For some reason couldn't parse the snop file {0}".format(path))
-    nu, op = np.loadtxt(path,skiprows=2).T
+        raise ValueError("Parsing of header failed!")
+    f.seek(0)
+    nu, op = np.loadtxt(f, skiprows=2).T
     op = np.abs(np.log(op) / ( thick * 1e-4 * dens))
     return nu, op
 
