@@ -88,6 +88,7 @@ def cold_opacity(element, dens=0.1, nu=None, hdf5_backend='pytables'):
     elif dens.ndim == 2:
         return dens[:,:,np.newaxis]*op[np.newaxis, np.newaxis, :]
 
+
 def sync_pickle_db():
     import tables
     import pickle

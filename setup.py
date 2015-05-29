@@ -38,7 +38,7 @@ if INCLUDE_GSL:
              ))
 
 setup(name='hedp',
-      version='0.1',
+      version='0.1.0',
       description='Toolkit for HEDP experiments analysis and postprocessing of related radiative-hydrodynamic simulations',
       author='Roman Yurchak',
       author_email='rth@crans.org',
