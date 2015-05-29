@@ -106,13 +106,3 @@ class SifFile:
         #    # Needs more testing.
         #    self.shape = (int(line[2]), len(self.data)/int(line[2]))
         self.data = np.reshape(self.data, self.ccd_size)
-
-## Testing
-if __name__ == "__main__":
-    import pylab as plt
-    import scipy.ndimage
-
-    sif = SifFile(sys.argv[1])
-    cs = plt.imshow(scipy.ndimage.filters.median_filter(sif.data, 3))#, cmap=plt.cm.Paired)
-    plt.colorbar(cs)
-    plt.show()    

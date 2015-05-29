@@ -146,7 +146,7 @@ class HamamatsuFile(object):
 
 
         header =  header[:self._offset_auto+300] # add an extra random header for offset
-        header = re.sub(r'(?P<section>\[[^\]]+\])', '\n\g<section>', header.decode('utf-8'))
+        header = re.sub(r'(?P<section>\[[^\]]+\])', '\n\g<section>', header.decode('latin1'))
         header = header.splitlines()[1:]
         self.header = dict([self._header_sect2dict(line) for line in header])
         self.shape = np.array(self.header['Acquisition']['areGRBScan'].split(',')[-2:]).astype(np.int)
@@ -249,47 +249,3 @@ class HamamatsuFile(object):
                 out += '   - {0} : {1}\n'.format(key, val)
             out += '\n'
         return out
-
-
-def test_hamamatsu():
-    """Some basic unitest"""
-    ref = np.load('test_image.npy').astype(np.int16)
-    img = HamamatsuFile('test_image.img').data
-    assert (np.flipud(ref) == img).all()
-
-
-
-if __name__ == '__main__':
-    # just call this file as
-    # python hamamatsu.py filename.img
-    import argparse
-    import sys
-    import matplotlib.pyplot as plt
-
-    parser = argparse.ArgumentParser(
-            description="Open a Hamamatsu streak camera's .img file")
-    parser.add_argument('filepath', type=str,
-                               help='path to the .img file')
-
-    args = parser.parse_args()
-    #  some logic to determine offset mode depending on the folder
-    offset = 'from_end'
-    if sum([key in args.filepath for key in ['Rear_SOP_1D']]) and\
-        not sum([key in args.filepath for key in ['ref.img', 'alignemts']]):
-        offset =  'from_end_4k'
-    elif sum([key in args.filepath for key in ['Transverse_SOP_1D']]):
-        offset =  'from_end'
-    offset = 'from_end_4'
-    print(offset)
-
-
-    sp = HamamatsuFile(args.filepath, offset, dtype="int16")
-    print(sp._offset_data)
-    print(sp.data.shape, sp._nbytes)
-
-    d = sp.data
-    cs = plt.imshow(sp.data, vmax=np.percentile(sp.data, 99.9))
-
-    plt.colorbar(cs)
-    plt.show()
-
