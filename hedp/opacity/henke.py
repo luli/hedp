@@ -56,7 +56,7 @@ def cold_opacity(element, dens=0.1, nu=None, hdf5_backend='pytables'):
             f.close()
     elif hdf5_backend == 'pytables':
         import tables
-        with tables.open_file(HENKE_DATA_PATH+'.h5', 'r') as f:
+        with tables.open_file(HENKE_DATA_PATH+'.h5', 'a') as f:
             if not '/'+element in f:
                 print("Warning: couldn't find cold opacity for {0} ; trying to download...".format(element))
                 f.close()
@@ -87,6 +87,13 @@ def cold_opacity(element, dens=0.1, nu=None, hdf5_backend='pytables'):
         return op*dens.reshape(-1,1)
     elif dens.ndim == 2:
         return dens[:,:,np.newaxis]*op[np.newaxis, np.newaxis, :]
+
+def sync_pickle_db():
+    import pickle
+    with tables.open_file(HENKE_DATA_PATH+'.h5', 'r') as f:
+        pickle.save(
+
+
 
 
 def download_full(element, dens=None):

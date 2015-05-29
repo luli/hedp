@@ -46,7 +46,7 @@ setup(name='hedp',
       cmdclass = {'build_ext': build_ext},
       ext_modules = ext_modules,
       include_dirs=[np.get_include(), INCLUDE_GSL],
-      package_data={'hedp': ['hedp/tests/data/*', 'hedp/data/db']},
+      package_data={'hedp': ['hedp/tests/data/*', 'data/db']},
       test_suite="hedp.tests.run"
      )
 
