@@ -66,6 +66,7 @@ def cold_opacity(element, dens=0.1, nu=None, hdf5_backend='pytables'):
             nu0 = getattr(f.root, element).nu[:]
             op0 = getattr(f.root, element).op[:]
             f.close()
+            sync_pickle_db()
     elif hdf5_backend == 'pickle':
         import pickle
         with open(HENKE_DATA_PATH+'.pickle', 'rb') as handle:
