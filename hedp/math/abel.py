@@ -102,7 +102,27 @@ def _abel_sym():
     res = integrate(P*K_d, (r,y, r1))
     sres= simplify(res)
     print(sres)
-    
+
+
+def reflect_array(x, axis=1, kind='even'):
+    """
+    Make a symmetrucally reflected array with respect to the given axis
+    """
+    if axis == 0:
+        x_sym = np.flipud(x)
+    elif axis == 1:
+        x_sym = np.fliplr(x)
+    else:
+        raise NotImplementedError
+
+    if kind == 'even':
+        fact = 1.0
+    elif kind == 'odd':
+        fact = -1.0
+    else:
+        raise NotImplementedError
+
+    return np.concatenate((fact*x_sym, x), axis=axis)
 
 
 def abel_analytical_step(r, fr_z, r0, r1):
