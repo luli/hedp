@@ -195,15 +195,59 @@ class StepsIP(object):
         self.beta = fit.beta#[::-1]
         self.sdbeta = fit.sd_beta#[::-1]
 
-        print ofunc2(self.beta, self.thick, self.nu, 'polystyrene')
-        print self.exp_tr
+        print(ofunc2(self.beta, self.thick, self.nu, 'polystyrene'))
+        print(self.exp_tr)
 
-        print '\n'
-        print beta0
-        print self.beta
+        print('\n')
+        print(beta0)
+        print(self.beta)
 
         #print ofunc([1,1,100,1000], self.sp_sens, self.exp_tr, self.nu, 'Cl')
 
+
+def blurred_step_function(p, x):
+    """
+    Fitting function for a heaviside function, convolved with a gaussian together with a linear drift
+    """
+    from scipy.special import erf
+    #p[4] = np.sign(p[4])*np.fmin(1e-3, np.abs(p[4]))
+
+    return  0.5*p[0]*(1. + erf((x-p[1])/(2**0.5*p[2]))) + p[3] + p[4]*x
+
+
+def estimate_spatial_resolution(x, y, ofunc=blurred_step_function, beta0=None, verbose=True):
+    """
+    Estimate the spatial resolution of an X-ray image from a lineout of an edge.
+    It assumes that if the spatial resolution was ideal, that should produce a sharp step.
+    Instead we have a step convolved with a gaussian function. This function then estimates 
+    the standard deviation of this gaussian. 
+
+    Parameters
+    ----------
+        x : ndarray : position in physical units [µm, cm, etc]
+        y : ndarray : signal on the IP
+        ofunc: objective function, here the convolution of a step with a gaussian
+        beta0 : initial estimate of parameters. A good estimate could be for instance, 
+                   beta0 = [y.mean(), x.mean(), 20, y.mean(), 0]
+        verbose: true
+
+
+    Returns
+    -------
+      tuple:  (std, std_err)
+    """
+    from scipy import odr
+    mmodel = odr.Model(ofunc)
+    mdata = odr.Data(x, y)
+
+    fit = odr.ODR(mdata, mmodel, beta0, maxit=1000)
+    fit.set_job(fit_type=2) # least squares
+    fit.set_iprint(final=verbose)
+    fit.run()
+    beta = fit.output.beta
+    error = fit.output.sd_beta
+
+    return beta, error
 
 
 
