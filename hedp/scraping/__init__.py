@@ -10,5 +10,5 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from scrape_k_edge import scrape_k_edge
+from .scrape_k_edge import scrape_k_edge
 
