@@ -58,3 +58,19 @@ class TestPlanck():
     #sop.planck
 
 
+def test_cooling_function():
+    """ Testing from the example in
+      High-Energy-Density Physics: Fundamentals, Inertial Fusion, page 256
+    """
+    from hedp.rad import planck_op2cooling_fn
+    Zbar = 1.0
+    A = 1.0
+    rho = 10/6.02e+23
+    tele = 10*11640
+    kappa = 5e-37/rho
+    res = planck_op2cooling_fn(kappa, rho, tele, A, Zbar)
+    np.testing.assert_allclose(res, 1e-22, rtol=1e-1)
+
+
+
+

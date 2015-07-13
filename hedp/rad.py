@@ -157,3 +157,19 @@ def rosseland_mg2gray(groups, op, temp):
         dBnu_i[k] = quad(dBnu_fn, groups[k], groups[k+1])[0]
 
     return ((dBnu_i/op).sum()/dBnu_i.sum())**(-1)
+
+
+def planck_op2cooling_fn(kappa, dens, temp, A, Zbar):
+    """
+    Calculate the cooling function from the Planck opacity (Drake 2005)
+
+    Parameters:
+      - kappa: Planck opacity (g/cm^2)
+      - dens: density (g/cm^2)
+      - temp: temperature (K)
+      - A: mean atomic mass
+      - Zbar: 
+    """
+    from scipy.constants import N_A
+    SIGMA_SB = 5.6706e-5 # erg.cm^{-2}.s^-1.K^-4
+    return SIGMA_SB*temp**4*2*A**2*dens*kappa/(Zbar*dens**2*N_A**2)

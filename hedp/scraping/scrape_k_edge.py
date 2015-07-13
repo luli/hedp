@@ -15,7 +15,7 @@ import urllib2
 import pandas as pd
 import re
 
-def scape_k_edge_data():
+def scrape_k_edge():
     """
     Scrapes the atomic and nuclear physics database at
         http://www.kayelaby.npl.co.uk/atomic_and_nuclear_physics/4_2/4_2_1.html
@@ -86,6 +86,3 @@ def scape_k_edge_data():
     df.index = df.Z
     del df['Z']
     return df
-
-df = scape_k_edge_data()
-print(df)
