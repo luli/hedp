@@ -168,7 +168,7 @@ def planck_op2cooling_fn(kappa, dens, temp, A, Zbar):
       - dens: density (g/cm^2)
       - temp: temperature (K)
       - A: mean atomic mass
-      - Zbar: 
+      - Zbar: mean ionization
     """
     from scipy.constants import N_A
     SIGMA_SB = 5.6706e-5 # erg.cm^{-2}.s^-1.K^-4

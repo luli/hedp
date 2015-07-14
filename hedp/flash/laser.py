@@ -19,6 +19,8 @@ class LaserPulse(object):
         self.profile = pulse_profile
         if pulse_profile == 'square':
             self._instance_call= lambda x: self.square_pulse(x, I0,  **args)
+        if pulse_profile == 'gaussian':
+            self._instance_call= lambda x: self.gaussian_pulse(x, I0,  **args)
         else:
             raise NotImplementedError
 
@@ -29,6 +31,11 @@ class LaserPulse(object):
         P_pattern[mask] = np.exp(-(P_time[mask] - t0)**2/(2*(rise_time)**2))
         mask = P_time > dt + t0
         P_pattern[mask] = 0
+        return P_pattern*I0
+
+
+    def gaussian_pulse(self, P_time, I0, dt=1.0e-9, t0=1.0e-9):
+        P_pattern = np.exp(-(P_time - t0)**2/(2*(dt)**2))
         return P_pattern*I0
 
 
