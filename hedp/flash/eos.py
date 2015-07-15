@@ -39,8 +39,13 @@ class FlashEosMaterials(dict):
             if self.data[spec]['op_table'] is None:
                 raise ValueError('Opacity table not set for specie {}'.format(spec))
 
-            f = opp.OpacIonmix(self.data[spec]['op_table'],
-                                self.data[spec]['A']/opp.NA, twot=True, man=True, verbose=False)
+            try:
+                f = opp.OpacIonmix(self.data[spec]['op_table'],
+                                    self.data[spec]['A']/opp.NA, twot=True, man=True, verbose=False)
+            except:
+                print('Error: failed to parse {} file!'.format(self.data[spec]['op_table']))
+                raise
+
             rad_grid.append(f.opac_bounds[:])
             if not validate:
                 # if not validating we just need one radiative grids

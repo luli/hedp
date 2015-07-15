@@ -113,7 +113,7 @@ class LaserBeams(object):
 
         for idx, cross_section in enumerate(self.p['ed_crossSectionFunctionType']):
             if cross_section == 'gaussian2D':
-                self.gridnRadialTics = np.asarray([ rays_per_cell*beam_size/dx for beam_size in self.targetSemiAxis], dtype=np.float)
+                self.gridnRadialTics = np.asarray([ rays_per_cell*beam_size/dx for beam_size in self.targetSemiAxis], dtype=np.int)
                 self.numberOfRays = self.gridnRadialTics*int(radial_ticks_to_rays_factor)
             else:
                 raise NotImplementedError
