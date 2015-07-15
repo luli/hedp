@@ -1,6 +1,7 @@
 {
     "_comment:": "",
     "solid_dens": 4.506,
+    "rho0": 4.506,
     "Z": 22,
     "A": 47.867,
     "formula": "Ti",
