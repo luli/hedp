@@ -17,8 +17,6 @@ if sys.version_info.major < 3:
 else:
     from urllib.request import urlopen
 
-from bs4 import BeautifulSoup
-import pandas as pd
 
 
 def scrape_k_edge():
@@ -31,6 +29,8 @@ def scrape_k_edge():
         - K_edge
         - K_alpha_1
     """
+    from bs4 import BeautifulSoup
+    import pandas as pd
 
     wiki = "http://www.kayelaby.npl.co.uk/atomic_and_nuclear_physics/4_2/4_2_1.html"
     page = urlopen(wiki)
