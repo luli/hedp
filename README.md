@@ -11,11 +11,12 @@ General purpose module to analyse HEDP relevant experiments and hydrodynamic sim
 
 
 ## Dependencies
-   This module requires Python 2.7, 3.3 or 3.4  with the usual scientific python modules `numpy`, `scipy`,  `cython`, `pytables`  together with `opacplot2` ( https://github.com/rth/opacplot2).
+   This module requires Python 2.7, 3.3 or 3.4  with  `numpy`, `scipy`,  `cython`, `pytables` and `opacplot2` ( https://github.com/rth/opacplot2).
 
 
  Optional dependencies include:
  - `matplotlib`
+ - `beautifulsoup4`
  - The GNU Scientific Library (GSL), required for calculating the Planck/Rosseland means
  - PyEOSPAC (https://github.com/luli/pyeospac), for interfacing with the tabulated EoS
  - `nose`, for running the test suite
