@@ -10,10 +10,16 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from bs4 import BeautifulSoup
-import urllib2
-import pandas as pd
+import sys
 import re
+if sys.version_info.major < 3:
+    from urllib2 import urlopen
+else:
+    from urllib.request import urlopen
+
+from bs4 import BeautifulSoup
+import pandas as pd
+
 
 def scrape_k_edge():
     """
@@ -27,7 +33,7 @@ def scrape_k_edge():
     """
 
     wiki = "http://www.kayelaby.npl.co.uk/atomic_and_nuclear_physics/4_2/4_2_1.html"
-    page = urllib2.urlopen(wiki)
+    page = urlopen(wiki)
     soup = BeautifulSoup(page)
 
 
