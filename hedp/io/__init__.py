@@ -9,5 +9,6 @@
 #from sifreader import readSIF
 from .andor import SifFile
 from .hamamatsu import HamamatsuFile
+from .image_plate import convert_ip_to_psl
 
 
