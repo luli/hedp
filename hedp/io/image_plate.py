@@ -71,4 +71,4 @@ def convert_ip_to_psl(basepath, nbits=16):
     alpha = (pars['Res']/100.)**2*(4000/pars['S'])
     beta = pars['L']*(data.astype('float64')/2**nbits-0.5)
 
-    return alpha*10**beta
+    return alpha*10**beta, pars

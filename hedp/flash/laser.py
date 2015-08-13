@@ -19,7 +19,7 @@ class LaserPulse(object):
         self.profile = pulse_profile
         if pulse_profile == 'square':
             self._instance_call= lambda x: self.square_pulse(x, I0,  **args)
-        if pulse_profile == 'gaussian':
+        elif pulse_profile == 'gaussian':
             self._instance_call= lambda x: self.gaussian_pulse(x, I0,  **args)
         else:
             raise NotImplementedError
@@ -171,8 +171,14 @@ class LaserBeams(object):
 
         for label, value, fmt in zip(labels, dataset, entry_format):
             row_format ="{:18}" + fmt*self.num_bream
-            out.append(
-                   row_format.format(label, *value))
+            #if not isinstance(value, (int, long, float)):
+            #    value = [value]
+            try:
+                out.append( row_format.format(label, *value))
+            except:
+                out.append( row_format.format(label, value))
+
+                #out.append(('Formatting error: {} {} {}'.format(label, value, fmt)))
 
 
         out += ['='*80, '']

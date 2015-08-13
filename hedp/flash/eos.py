@@ -98,7 +98,10 @@ class FlashEosMaterials(dict):
             if key in args:
                 val = args[key]
             elif key == 'rho':
-                val = mat['rho0']
+                for subkey in ['rho0', 'solid_dens']:
+                    if mat[subkey] is not None:
+                        val = mat[subkey]
+                        break
             elif key in self.default_args:
                 val = self.default_args[key]
             elif 'temp' in self.default_args:
@@ -208,7 +211,12 @@ class FlashEosMaterials(dict):
         for key, fmt in zip(labels, entry_format):
             row_format ="{:10}" + fmt*self.num_materials
             values = [self.data[spec][key] for spec in self.materials]
-            out.append(row_format.format(key, *values))
+            try:
+                out.append(row_format.format(key, *values))
+            except:
+                out.append('Formatting error: {} {} {}'.format(row_format, key, values))
+
+
 
         out += ['', 'EoS']
         for spec in self.materials:

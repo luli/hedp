@@ -20,7 +20,14 @@ class MergedDict(collections.MutableMapping):
         -----------
           a list of dictionaries (e.g. MergedDict(dict1, dict2, dict3) )
         """
-        self.collection = [{self.__keytransform__(key): val for key, val in obj.items()} for obj in objects]
+        self.obj = objects
+
+    @property
+    def collection(self):
+        """ Generate the collection every time"""
+        # this is very unefficient, but allows to account for changes in
+        # the self.obj that can't be controlled
+        return [{self.__keytransform__(key): val for key, val in obj.items()} for obj in self.obj]
 
     def __getitem__(self, key):
         """ Get an element """
