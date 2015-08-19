@@ -73,6 +73,13 @@ class LaserBeams(object):
         self.dt = [el.dt for el in pulses]
         self.pulse_profile = [el.profile for el in pulses]
         self.P_pattern = [el(self.P_time) for el in pulses]
+        if self.pars['NDIM'] == 1:
+            self.P_power = [P_pattern for P_pattern, S0 in zip(self.P_pattern)]
+        elif self.pars['NDIM'] == 2:
+            self.P_power = [S0*P_pattern for P_pattern, S0 in zip(self.P_pattern, self.beam_surface)]
+        else:
+            raise ValueError
+
         self.P_power = [S0*P_pattern for P_pattern, S0 in zip(self.P_pattern, self.beam_surface)]
         self.Energy = [ np.trapz(P_power,  self.P_time) for P_power in self.P_power]
 
@@ -80,6 +87,8 @@ class LaserBeams(object):
     def _get_beams_surface(self):
         self.beam_surface = []
         self.num_bream = len(self.p['ed_crossSectionFunctionType'])
+        if self.pars['NDIM'] == 1:
+            return
         self.targetSemiAxis = []
         for idx, cross_section in enumerate(self.p['ed_crossSectionFunctionType']):
             if cross_section == 'gaussian2D':
@@ -91,18 +100,31 @@ class LaserBeams(object):
 
 
     def get_pars(self):
-        out = {'ed_power': self.P_power,
-               'ed_time': [self.P_time]*self.num_bream,
-               'ed_numberOfSections': [len(self.P_time)]*self.num_bream,
-               'ed_pulseNumber': range(self.num_bream),
-               'ed_numberOfBeams': self.num_bream,
-               'ed_numberOfPulses': self.num_bream,
-               'ed_targetSemiAxisMajor': self.targetSemiAxis,
-               'ed_targetSemiAxisMinor': self.targetSemiAxis,
-               'ed_gridnRadialTics': self.gridnRadialTics,
-               'ed_numberOfRays': self.numberOfRays,
-               'ed_pulseNumber': range(1, self.num_bream+1) # this is very restrictive and needs to be extended
-              } 
+        if self.pars['NDIM'] == 1:
+            out = {'ed_power': self.P_power,
+                   'ed_time': [self.P_time]*self.num_bream,
+                   'ed_numberOfSections': [len(self.P_time)]*self.num_bream,
+                   'ed_pulseNumber': range(self.num_bream),
+                   'ed_numberOfBeams': self.num_bream,
+                   'ed_numberOfPulses': self.num_bream,
+                   'ed_numberOfRays': [1]*self.num_bream,
+                   'ed_pulseNumber': range(1, self.num_bream+1) # this is very restrictive and needs to be extended
+                  } 
+        elif self.pars['NDIM'] == 2:
+            out = {'ed_power': self.P_power,
+                   'ed_time': [self.P_time]*self.num_bream,
+                   'ed_numberOfSections': [len(self.P_time)]*self.num_bream,
+                   'ed_pulseNumber': range(self.num_bream),
+                   'ed_numberOfBeams': self.num_bream,
+                   'ed_numberOfPulses': self.num_bream,
+                   'ed_targetSemiAxisMajor': self.targetSemiAxis,
+                   'ed_targetSemiAxisMinor': self.targetSemiAxis,
+                   'ed_gridnRadialTics': self.gridnRadialTics,
+                   'ed_numberOfRays': self.numberOfRays,
+                   'ed_pulseNumber': range(1, self.num_bream+1) # this is very restrictive and needs to be extended
+                  } 
+        else:
+            raise NotImplementedError
         return out
 
 
@@ -110,6 +132,8 @@ class LaserBeams(object):
         """
         This assumes 3D in 2D ray tracing 
         """
+        if self.pars['NDIM'] == 1:
+            pass
 
         for idx, cross_section in enumerate(self.p['ed_crossSectionFunctionType']):
             if cross_section == 'gaussian2D':
