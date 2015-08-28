@@ -12,7 +12,8 @@ except ImportError:
     pass
 
 try:
-    from .radiography import synthetic_radiography_cyl
+    from .radiography import (synthetic_radiography_cyl, synthetic_radiography,
+                                 backlighter_setup)
 except ImportError:
     pass
 

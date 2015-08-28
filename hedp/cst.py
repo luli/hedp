@@ -15,3 +15,5 @@ eV2Hz = physical_constants['electron volt-hertz relationship'][0]
 R_CST = physical_constants['molar gas constant'][0]*1e7 # erg.K⁻¹.mol⁻¹
 SIGMA_B_CST = physical_constants['Stefan-Boltzmann constant'][0]
 
+a_r = 7.565730e-16*1e7*1e-6 # erg.cm^-3.K-4
+
