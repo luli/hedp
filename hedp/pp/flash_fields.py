@@ -6,7 +6,13 @@
 # abiding by the rules of distribution of free software.
 import numpy as np
 from scipy.constants import N_A
-from yt.data_objects.field_info_container import add_field
+try:
+    from yt.data_objects.field_info_container import add_field
+except ImportError:
+    def add_field(*cargs, **vargs):
+        return None
+
+
 
 def _nion(field, data):
     return data['dens'] * data['sumy'] * N_A
