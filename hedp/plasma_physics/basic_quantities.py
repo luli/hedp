@@ -92,7 +92,7 @@ def log_lambda(nele, Znuc, temp, spec='e', source='Atzeni2004'):
         raise NotImplementedError('Source = {} for calculating the Coulomb logarithm is not implemented!'.format(source))
 
 
-def collision_rate(dens, temp, Abar, Zbar, kind='ei', source='Atzeni2004', ln_lambda_source=None):
+def collision_rate(dens, temp, abar, zbar, kind='ei', source='Atzeni2004', ln_lambda_source=None):
     """
     Compute the electron ion collision rate
 
@@ -103,7 +103,7 @@ def collision_rate(dens, temp, Abar, Zbar, kind='ei', source='Atzeni2004', ln_la
      - dens: density in [g.cm⁻³]
      - temp: temperature in [eV]
      - abar: mean atomic mass
-     - Zbar: mean ionization
+     - zbar: mean ionization
      - kind: type of colliosion rate ei, e (ee) or i (ii)
      - source: formula used to calculate the Log Λ  (see `log_lambda` )
 
@@ -119,14 +119,14 @@ def collision_rate(dens, temp, Abar, Zbar, kind='ei', source='Atzeni2004', ln_la
         raise ValueError
     if ln_lambda_source is None:
         ln_lambda_source = source
-    nion  = dens*N_A/Abar
-    nele = nion*Zbar
-    lnLambda  =  log_lambda(nele, Zbar, temp, spec=spec, source=ln_lambda_source)
+    nion  = dens*N_A/abar
+    nele = nion*zbar
+    lnLambda  =  log_lambda(nele, zbar, temp, spec=spec, source=ln_lambda_source)
     if source == 'Atzeni2004':
         if kind == 'i':
-            res = 6.60e-19*(Abar**0.5*(temp/1e3)**(3./2))/((nion/1e21)*Zbar**4*lnLambda)
+            res = 6.60e-19*(abar**0.5*(temp/1e3)**(3./2))/((nion/1e21)*zbar**4*lnLambda)
         elif kind in ['e', 'ei']:
-            res = 1.09e-11*((temp/1e3)**(3./2))/((nion/1e21)*Zbar**2*lnLambda)
+            res = 1.09e-11*((temp/1e3)**(3./2))/((nion/1e21)*zbar**2*lnLambda)
             if kind == 'ei':
                 res *= m_p_e/2
         return 1./res
@@ -154,21 +154,21 @@ def ff_collision_frequency(nele, zbar,tele, lmbda):
     return nu_ff
 
 
-def isentropic_sound_speed(Abar, Zbar, gamma, tele):
+def isentropic_sound_speed(abar, zbar, gamma, tele):
     """
     Compute the ion sound speed for an ideal gas (NRL formulary):
 
     Parameters:
     -----------
-     - Abar: atomic number
-     - Zbar: mean ionization
+     - abar: atomic number
+     - zbar: mean ionization
      - gamma: adiabatic index
      - tele: electron temperature [eV]
     Returns:
     -----------
      adiabatic sound speed [km/s]
     """
-    return 9.79*(gamma*Zbar*tele/Abar)**0.5
+    return 9.79*(gamma*zbar*tele/abar)**0.5
 
 
 def spitzer_conductivity(nele, tele, znuc, zbar):
@@ -207,3 +207,50 @@ def spitzer_conductivity2(nele, tele, znuc, zbar):
 
     lnLam = coulomb_logarithm(nele, znuc, tele)
     return 2e21*tele**(5./2)/(lnLam*nele*(zbar+1))
+
+def thermal_speed(temp, abar=1.0, spec='e'):
+    """
+    Calculate the thermal speed for electrons or ions
+
+    Parameters
+    ----------
+     - temp [eV]
+     - abar: mean atomic number
+     - spec: species
+
+    Returns
+    -------
+      speed in cm/s
+
+    Source: https://en.wikipedia.org/wiki/Plasma_parameters
+    """
+    if spec == 'e':
+        return 4.19e7*temp**0.5
+    elif spec == 'i':
+        return 9.79e5*abar**(-0.5)*temp**0.5
+    else:
+        raise ValueError
+
+
+def collisional_mfp(dens, temp, abar, zbar, source='Atzeni2004'):
+    """
+    Calculate the collisional mean free path
+
+    Parameters:
+    -----------
+     - dens: density in [g.cm⁻³]
+     - temp: temperature in [eV]
+     - abar: mean atomic mass
+     - zbar: mean ionization
+     - source: 
+
+    Returns
+    -------
+     - collisional mean free path [cm]
+
+    Source: Drake (2006) book. 
+    """
+    nu_ei = collision_rate(dens, temp, abar, zbar, kind='ei', source='Atzeni2004')
+    vel = thermal_speed(temp, abar, spec='e')
+
+    return  vel/nu_ei
