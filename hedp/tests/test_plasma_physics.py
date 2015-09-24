@@ -43,7 +43,6 @@ def test_coulomb_logarithm_old():
 
 def test_coulomb_logarithm():
     """Checking ln Λ  calculations """
-    print(hedp.plasma_physics.__file__)
     F0 = hedp.plasma_physics.log_lambda(1e19, 1, 1e2, spec='e', source='Atzeni2004')
     F1 = np.array([7.1])
     assert_allclose(F0, F1, rtol=1e-2)

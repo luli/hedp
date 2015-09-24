@@ -7,10 +7,11 @@
 
 import numpy as np
 
-from scipy.constants import e, c, m_e, epsilon_0, k
+from scipy.constants import e, c, m_e, epsilon_0, k, N_A
 from scipy.constants import physical_constants
 
 eV2K = physical_constants['electron volt-kelvin relationship'][0]
+m_p_e = physical_constants['proton-electron mass ratio'][0]
 
 def critical_density(lmbda):
     """
@@ -71,7 +72,7 @@ def log_lambda(nele, Znuc, temp, spec='e', source='Atzeni2004'):
         ln Λ_spec
     """
     if spec not in ['e', 'i']:
-        raise ValueError("The 'spec' argiment {} must be either 'i' (ions) or 'e' (electons)".format(spec))
+        raise ValueError("The 'spec' argument {} must be either 'i' (ions) or 'e' (electrons)".format(spec))
     if source == 'Atzeni2004':
         if spec == 'e':
             if not np.all(temp > 10):
@@ -91,24 +92,46 @@ def log_lambda(nele, Znuc, temp, spec='e', source='Atzeni2004'):
         raise NotImplementedError('Source = {} for calculating the Coulomb logarithm is not implemented!'.format(source))
 
 
-def ei_collision_rate(nele, zbar,tele):
+def collision_rate(dens, temp, Abar, Zbar, kind='ei', source='Atzeni2004', ln_lambda_source=None):
     """
     Compute the electron ion collision rate
 
+    Source: Atzeni2004 
+
     Parameters:
     -----------
-     - nele: electron density in [cm⁻³]
-     - zbar: mean ionization
-     - tele: mean temperature in K
+     - dens: density in [g.cm⁻³]
+     - temp: temperature in [eV]
+     - abar: mean atomic mass
+     - Zbar: mean ionization
+     - kind: type of colliosion rate ei, e (ee) or i (ii)
+     - source: formula used to calculate the Log Λ  (see `log_lambda` )
 
      Returns:
      --------
-      ν_ei  [s^-1]
+      ν_kind  [s^-1]
     """
-    lnLambda  =  coulomb_logarithm(nele, zbar, tele)
-    Ne = nele * 1e6
-    nu_ei = 4./3 * (2*np.pi/m_e)**0.5 * (Ne*zbar*e**4*lnLambda)/(k*tele)**(3./2) / (4*np.pi*epsilon_0)**2
-    return nu_ei
+    if kind in ['e', 'ei']:
+        spec = 'e'
+    elif kind == 'i':
+        spec = 'i'
+    else:
+        raise ValueError
+    if ln_lambda_source is None:
+        ln_lambda_source = source
+    nion  = dens*N_A/Abar
+    nele = nion*Zbar
+    lnLambda  =  log_lambda(nele, Zbar, temp, spec=spec, source=ln_lambda_source)
+    if source == 'Atzeni2004':
+        if kind == 'i':
+            res = 6.60e-19*(Abar**0.5*(temp/1e3)**(3./2))/((nion/1e21)*Zbar**4*lnLambda)
+        elif kind in ['e', 'ei']:
+            res = 1.09e-11*((temp/1e3)**(3./2))/((nion/1e21)*Zbar**2*lnLambda)
+            if kind == 'ei':
+                res *= m_p_e/2
+        return 1./res
+    else:
+        raise NotImplementedError
 
 
 def ff_collision_frequency(nele, zbar,tele, lmbda):
