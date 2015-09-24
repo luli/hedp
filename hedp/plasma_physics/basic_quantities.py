@@ -77,19 +77,21 @@ def log_lambda(nele, Znuc, temp, spec='e', source='Atzeni2004'):
         if spec == 'e':
             if not np.all(temp > 10):
                 print('Warning: computing Ln Λ_e outside of its validity range Te > 10 eV !')
-            return 7.1 - 0.5*np.log(nele*1e-21) + np.log(temp*1e-3)
+            res =  7.1 - 0.5*np.log(nele*1e-21) + np.log(temp*1e-3)
         elif spec == 'i':
             if not np.all(temp < Znuc/2.*10e3):
                 print('Warning: computing Ln Λ_e outside of its validity range Ti < 10 A keV !')
-            return 9.2 - 0.5*np.log(nele*1e-21) + 1.5*np.log(temp*1e-3)
+            res =  9.2 - 0.5*np.log(nele*1e-21) + 1.5*np.log(temp*1e-3)
     elif source == 'Drake2006':
         if spec == 'e':
             print('Warning: validity domain for Ln Λ_e not defined in Drake (2006)!')
-            return np.fmax(1, 24. - np.log(nele**0.5/temp))
+            res = 24. - np.log(nele**0.5/temp)
         else:
             raise NotImplementedError('Ln Λ_i not defined in the Drake (2006) book!')
     else:
         raise NotImplementedError('Source = {} for calculating the Coulomb logarithm is not implemented!'.format(source))
+
+    return np.fmax(1, res)
 
 
 def collision_rate(dens, temp, abar, zbar, kind='ei', source='Atzeni2004', ln_lambda_source=None):
