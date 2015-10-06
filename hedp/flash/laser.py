@@ -74,13 +74,11 @@ class LaserBeams(object):
         self.pulse_profile = [el.profile for el in pulses]
         self.P_pattern = [el(self.P_time) for el in pulses]
         if self.p['NDIM'] == 1:
-            self.P_power = [P_pattern for P_pattern, S0 in zip(self.P_pattern)]
+            self.P_power = [P_pattern for  P_pattern in self.P_pattern]
         elif self.p['NDIM'] == 2:
             self.P_power = [S0*P_pattern for P_pattern, S0 in zip(self.P_pattern, self.beam_surface)]
         else:
             raise ValueError
-
-        self.P_power = [S0*P_pattern for P_pattern, S0 in zip(self.P_pattern, self.beam_surface)]
         self.Energy = [ np.trapz(P_power,  self.P_time) for P_power in self.P_power]
 
 
@@ -133,14 +131,15 @@ class LaserBeams(object):
         This assumes 3D in 2D ray tracing 
         """
         if self.p['NDIM'] == 1:
-            pass
+            self.numberOfRays = [1]*self.num_bream
+        elif self.p['NDIM'] == 2:
 
-        for idx, cross_section in enumerate(self.p['ed_crossSectionFunctionType']):
-            if cross_section == 'gaussian2D':
-                self.gridnRadialTics = np.asarray([ rays_per_cell*beam_size/dx for beam_size in self.targetSemiAxis], dtype=np.int)
-                self.numberOfRays = self.gridnRadialTics*int(radial_ticks_to_rays_factor)
-            else:
-                raise NotImplementedError
+            for idx, cross_section in enumerate(self.p['ed_crossSectionFunctionType']):
+                if cross_section == 'gaussian2D':
+                    self.gridnRadialTics = np.asarray([ rays_per_cell*beam_size/dx for beam_size in self.targetSemiAxis], dtype=np.int)
+                    self.numberOfRays = self.gridnRadialTics*int(radial_ticks_to_rays_factor)
+                else:
+                    raise NotImplementedError
 
 
     def __repr__(self):
@@ -154,9 +153,6 @@ class LaserBeams(object):
                    'Pulse profile',
                    'Duration [ns]',
                    'Cross section',
-                   'FWHM [um]',
-                   'SG gamma',
-                   'nRadialTicks',
                    "numberOfRays"
                    ]
 
@@ -166,9 +162,6 @@ class LaserBeams(object):
                    self.pulse_profile,
                    np.asarray(self.dt)*1e9,
                    self.p['ed_crossSectionFunctionType'],
-                   np.asarray(self.p['ed_gaussianRadiusMajor'])*1e4,
-                   self.p['ed_gaussianExponent'],
-                   self.gridnRadialTics,
                    self.numberOfRays
                    ]
 
@@ -179,11 +172,18 @@ class LaserBeams(object):
                         '{:>10}',
                         '{:>10.3f}',
                         '{:>10}',
-                        '{:>10.1f}',
-                        '{:>10.2f}',
-                        '{:>10.0f}',
                         '{:>10.0f}',
                         ]
+        if self.p['NDIM'] == 2:
+            dataset.append( np.asarray(self.p['ed_gaussianRadiusMajor'])*1e4,)
+            dataset.append( self.p['ed_gaussianExponent'],)
+            dataset.append(       self.gridnRadialTics,)
+            labels.append( 'FWHM [um]')
+            labels.append('SG gamma',)
+            labels.append('nRadialTicks')
+            entry_format.append( '{:>10.1f}',)
+            entry_format.append('{:>10.2f}',)
+            entry_format.append('{:>10.0f}')
 
 
         out = ['', '='*80, ' '*26 + 'Laser parameters', '='*80]
@@ -200,9 +200,9 @@ class LaserBeams(object):
             try:
                 out.append( row_format.format(label, *value))
             except:
-                out.append( row_format.format(label, value))
+                #out.append( row_format.format(label, value))
 
-                #out.append(('Formatting error: {} {} {}'.format(label, value, fmt)))
+                out.append(('Formatting error: {} {} {}'.format(label, value, fmt)))
 
 
         out += ['='*80, '']

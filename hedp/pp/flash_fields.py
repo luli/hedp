@@ -41,7 +41,7 @@ def _cs(field, data):
 add_field ('cs', function=_cs, take_log=False)
 
 def _velc(field, data):
-    return (data['velx']**2 +  data["vely"]**2)**0.5
+    return 1e-5*(data['velx']**2 +  data["vely"]**2)**0.5
 
 add_field ('velc', function=_velc, take_log=False)
 
