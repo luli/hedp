@@ -12,7 +12,9 @@ import warnings
 
 import numpy as np
 import tables
-import yt.mods
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    import yt.mods
 from yt.frontends.flash.data_structures import FLASHStaticOutput
 import flash.output
 import hedp
@@ -25,7 +27,6 @@ from time import time
 from numexpr import evaluate
 
 
-warnings.simplefilter("ignore")
 
 def fslice(filename, fields, resolution=800, cache="/dev/shm", bounds=None, method='nearest'):
     """
