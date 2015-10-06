@@ -78,8 +78,7 @@ class Storage(dict):
     __slots__ = ()
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
-    __getitem__ = dict.get
-    __getattr__ = dict.get
+    __getattr__ = dict.__getitem__
     __repr__ = lambda self: '<Storage %s>' % dict.__repr__(self)
     # http://stackoverflow.com/questions/5247250/why-does-pickle-getstate-accept-as-a-return-value-the-very-instance-it-requi
     __getstate__ = lambda self: None

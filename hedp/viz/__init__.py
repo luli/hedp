@@ -7,3 +7,4 @@
 # abiding by the rules of distribution of free software.
 
 from .formatters import MetricFormatter
+from .scalebars import add_scalebar

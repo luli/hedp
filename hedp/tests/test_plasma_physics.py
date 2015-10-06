@@ -34,8 +34,15 @@ def test_critical_density():
 
 
 
-def test_coulomb_logarithm():
+def test_coulomb_logarithm_old():
     "Checking lnΛ (Zeldovich p419)"
     F0 = hedp.plasma_physics.coulomb_logarithm(1e12, 1, 1e6/eV2K)
     F1 = np.array([5.97])
     #assert_allclose(F0, F1, rtol=1e-2)
+
+
+def test_coulomb_logarithm():
+    """Checking ln Λ  calculations """
+    F0 = hedp.plasma_physics.log_lambda(1e19, 1, 1e2, spec='e', source='Atzeni2004')
+    F1 = np.array([7.1])
+    assert_allclose(F0, F1, rtol=1e-2)
