@@ -13,20 +13,25 @@ def thomas_fermi_ionization(rho, Te, Z, A):
 
         Parameters:
         -----------
-            - rho : ndarray: density [g.cm⁻³]
-            - Te : ndarray: temperature [eV]
+            - rho : ndarray or float: density [g.cm⁻³]
+            - Te : ndarray or float: temperature [eV]
             - Z : float:
             - A : float:
         Returns:
         --------
             - Zion: ndarray: average ionization
     """
+
+    rho = np.atleast_1d(rho)
+    Te = np.atleast_1d(Te)
+
     assert Z>0 and (A>Z)
     assert not (np.any(Te<0) or np.any(rho<0))
     alpha=14.3139
     beta=0.6624
     rho1=rho/(A*Z)
     zero_Te_mask = (Te==0)
+
     x = np.ones(rho.shape)*np.nan
 
     # T == 0

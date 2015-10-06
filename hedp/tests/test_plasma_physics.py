@@ -20,18 +20,25 @@ def test_critical_density():
     F1 = 1.1148542159362519e21/(500*1e-3)**2
     assert_allclose(F0, F1, atol=0.1)
 
-#def test_ei_collision_rate():
-#    Ne = 1e21 # 1/cc
-#    tele = 1000 # eV
-#    tele_K = tele*11640
-#    zbar = 3.5
-#    F0 = hedp.plasma_physics.ei_collision_rate(Ne,zbar, tele_K)
-#
-#    ln_l =  hedp.plasma_physics.coulomb_logarithm(Ne,zbar, tele_K)
-#    F1 = 2.91e-6*1e21*3.5*ln_l/1000**(3./2)
-#
-#    assert_allclose(F0, F1, rtol=1e-2)
+def test_ei_collision_rate():
+    """
+    Check nu_ei Spitzer
+    """
+    from hedp.eos.ionization import thomas_fermi_ionization
+    from hedp.plasma_physics import collision_rate
 
+    dens = 2.7 
+    temp = 1.0e3
+    Z = 13.
+    Abar = 26.98
+
+    Zbar = thomas_fermi_ionization(dens, temp, Z, Abar)
+
+    nu_ei = collision_rate(dens, temp, Abar, Zbar, kind='ei', source='Atzeni2004')
+    nu_ei_ref = [2e15] # value taken from 
+    # "Coupling of detailed configuration kinetics and hydrodynamics in materials submitted
+    # to x-ray free-electron-laser irradiation" Peyrusse 2012, Fig 1.
+    assert_allclose(nu_ei, nu_ei_ref)
 
 
 def test_coulomb_logarithm_old():

@@ -92,7 +92,7 @@ class LaserBeams(object):
         self.targetSemiAxis = []
         for idx, cross_section in enumerate(self.p['ed_crossSectionFunctionType']):
             if cross_section == 'gaussian2D':
-                S0 = Int_super_gaussian(self.p['ed_gaussianRadiusMajor'][idx], self.p['ed_gaussianExponent'][idx])
+                S0 = Int_super_gaussian(self.p['ed_gaussianRadiusMajor'][idx], 2*self.p['ed_gaussianExponent'][idx])
                 self.targetSemiAxis.append(self.p['ed_gaussianRadiusMajor'][idx]*self.gaussian_target_ratio)
             else:
                 raise NotImplementedError
