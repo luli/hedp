@@ -59,7 +59,7 @@ def synthetic_radiography(rhol, species, nu, spect_ip, hdf5_backend='pickle', tr
     # projected density
     op = {key: hedp.opacity.henke.cold_opacity(species[key], rhol[key], nu, hdf5_backend) for key in species}
 
-    print(op['targ'].shape)
+#    print(op['targ'].shape)      # changement rigon
 
 
 
