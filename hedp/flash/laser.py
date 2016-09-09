@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 # Copyright CNRS 2012
 # Roman Yurchak (LULI)
+# ajout modificaton pour cross_section = 'gaussian1D' Gabriel Rigon (2016)
 # This software is governed by the CeCILL-B license under French law and
 # abiding by the rules of distribution of free software.
 import numpy as np
 from ..math.integrals import Int_super_gaussian
+from ..math.integrals import Int_super_gaussian1D
 
 
 class LaserPulse(object):
@@ -30,7 +32,10 @@ class LaserPulse(object):
         mask = P_time < t0
         P_pattern[mask] = np.exp(-(P_time[mask] - t0)**2/(2*(rise_time)**2))
         mask = P_time > dt + t0
-        P_pattern[mask] = 0
+#        P_pattern[mask] = 0
+#        mask = P_time > dt + t0
+        P_pattern[mask] = np.exp(-(P_time[mask] - (t0 + dt))**2/(2*(rise_time)**2))
+        P_pattern[-1] = 0
         return P_pattern*I0
 
 
@@ -92,6 +97,9 @@ class LaserBeams(object):
             if cross_section == 'gaussian2D':
                 S0 = Int_super_gaussian(self.p['ed_gaussianRadiusMajor'][idx], 2*self.p['ed_gaussianExponent'][idx])
                 self.targetSemiAxis.append(self.p['ed_gaussianRadiusMajor'][idx]*self.gaussian_target_ratio)
+            elif cross_section == 'gaussian1D':
+                S0 = Int_super_gaussian1D(self.p['ed_gaussianRadiusMajor'][idx], 2*self.p['ed_gaussianExponent'][idx])
+                self.targetSemiAxis.append(self.p['ed_gaussianRadiusMajor'][idx]*self.gaussian_target_ratio)
             else:
                 raise NotImplementedError
             self.beam_surface.append(S0)
@@ -136,6 +144,9 @@ class LaserBeams(object):
 
             for idx, cross_section in enumerate(self.p['ed_crossSectionFunctionType']):
                 if cross_section == 'gaussian2D':
+                    self.gridnRadialTics = np.asarray([ rays_per_cell*beam_size/dx for beam_size in self.targetSemiAxis], dtype=np.int)
+                    self.numberOfRays = self.gridnRadialTics*int(radial_ticks_to_rays_factor)
+                elif cross_section == 'gaussian1D':
                     self.gridnRadialTics = np.asarray([ rays_per_cell*beam_size/dx for beam_size in self.targetSemiAxis], dtype=np.int)
                     self.numberOfRays = self.gridnRadialTics*int(radial_ticks_to_rays_factor)
                 else:
